@@ -206,11 +206,11 @@ count.
 `status` shows *Vicinae* for that browser. Run
 `./install.sh --force` to switch it to Browvitab.
 
-### macOS blocks the downloaded helper
+### macOS blocks the helper
 
-Releases are not notarised yet. If the
-extension cannot start Browvitab after you import a downloaded copy, build it
-from source with `./install.sh`, which never needs Gatekeeper exceptions.
+The helper is not notarised. With Gatekeeper on, a downloaded copy still
+starts fine when the browser launches it, but if your Mac is set up stricter
+and the extension stays disconnected, build from source with `./install.sh`.
 
 ### A browser is missing
 
