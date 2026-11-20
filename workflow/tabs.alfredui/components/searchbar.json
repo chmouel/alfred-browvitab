@@ -1,0 +1,67 @@
+{
+  "constraints": { "region": "top" },
+  "type": "view",
+  "layout": "border",
+  "padding": 12,
+  "spacing": 10,
+  "components": [
+    {
+      "constraints": { "region": "left", "position": "centre", "size": { "width": 22, "height": 22 } },
+      "type": "imageview",
+      "contenttintcolour": "secondaryLabelColor",
+      "image": { "type": "symbol", "src": "square.stack", "size": { "width": 20 } },
+      "accessibility": { "label": "Browser tabs" }
+    },
+    {
+      "constraints": { "region": "centre", "position": "centre", "stretch": "horizontal" },
+      "id": "search",
+      "type": "textfield",
+      "text": "{var:query}",
+      "placeholder": "Search tabs…",
+      "focus": true,
+      "bordered": false,
+      "focusring": false,
+      "background": null,
+      "font": { "size": 22, "weight": "light" },
+      "textinsets": { "horizontal": 0, "vertical": 0 },
+      "accessibility": { "label": "Search tabs", "help": "Type to filter tabs by title, site or address." },
+      "events": [
+        {
+          "triggers": "changed",
+          "action": [
+            { "type": "json", "variables": { "query": "{value:self.text}", "navigated": "" }, "src": {} },
+            { "type": "function", "src": "tabs", "args": "filterdata" }
+          ]
+        },
+        {
+          "triggers": "typingstopped",
+          "action": {
+            "type": "script",
+            "async": true,
+            "src": "bin/raffi-tabs",
+            "args": ["ui-rank", "{value:self.text}", "{var:navigated}"]
+          }
+        },
+        {
+          "triggers": "actioned",
+          "action": "{file:actions/focus-selected.json}"
+        }
+      ]
+    },
+    {
+      "constraints": { "region": "right", "position": "centre" },
+      "id": "actionsbutton",
+      "type": "button",
+      "bordered": false,
+      "effect": "{var:button_effect}",
+      "image": { "type": "symbol", "src": "ellipsis.circle" },
+      "font": { "size": 15 },
+      "contenttintcolour": "secondaryLabelColor",
+      "tooltip": "Actions for the selected tab  ⌘K",
+      "accessibility": { "label": "Actions" },
+      "events": [
+        { "triggers": "actioned", "action": "{file:actions/menu-selected.json}" }
+      ]
+    }
+  ]
+}

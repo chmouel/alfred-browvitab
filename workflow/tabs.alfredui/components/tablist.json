@@ -1,0 +1,100 @@
+{
+  "constraints": { "region": "centre" },
+  "id": "tabs",
+  "type": "dataview",
+  "padding": 6,
+  "spacing": 0,
+  "placeholder": "Loading tabs…",
+  "behaviour": { "selection": { "wrap": "none" } },
+  "data": {
+    "type": "basic",
+    "src": [],
+    "filter": {
+      "type": "basic",
+      "args": "match",
+      "match": "{value:search.text}",
+      "matchmode": "wordmatchanyorder"
+    }
+  },
+  "cell": {
+    "height": 44,
+    "init": {
+      "row.background": null,
+      "title.colour": "labelColor",
+      "subtitle.colour": "secondaryLabelColor",
+      "pin.hidden": true,
+      "pin.contenttintcolour": "systemOrangeColor",
+      "sound.hidden": true,
+      "sound.contenttintcolour": "secondaryLabelColor"
+    },
+    "selected": {
+      "row.background": "alfredSelectedResultBackgroundColor",
+      "title.colour": "alfredSelectedResultTextColor",
+      "subtitle.colour": "alfredSelectedResultTextColor",
+      "pin.contenttintcolour": "alfredSelectedResultTextColor",
+      "sound.contenttintcolour": "alfredSelectedResultTextColor"
+    },
+    "root": {
+      "id": "row",
+      "type": "view",
+      "layout": "border",
+      "padding": 6,
+      "spacing": 10,
+      "cornerradius": 7,
+      "menu": "{file:components/cellmenu.json}",
+      "events": [
+        {
+          "triggers": "doubleclicked",
+          "action": { "type": "json", "src": { "finish": { "args": "{data:uid}", "variables": { "tabaction": "focus" } } } }
+        }
+      ],
+      "components": [
+        {
+          "constraints": { "region": "left", "position": "centre", "size": { "width": 20, "height": 20 } },
+          "id": "favicon",
+          "type": "imageview",
+          "resize": "fit",
+          "cornerradius": 3
+        },
+        {
+          "constraints": { "region": "centre", "position": "left", "stretch": "horizontal" },
+          "type": "view",
+          "layout": "inline",
+          "direction": "vertical",
+          "spacing": 1,
+          "components": [
+            {
+              "id": "title",
+              "type": "label",
+              "linebreak": "truncatetail",
+              "font": { "size": 14 }
+            },
+            {
+              "id": "subtitle",
+              "type": "label",
+              "linebreak": "truncatemiddle",
+              "font": { "size": 11 }
+            }
+          ]
+        },
+        {
+          "constraints": { "region": "right", "position": "centre" },
+          "type": "view",
+          "layout": "inline",
+          "spacing": 6,
+          "components": [
+            { "type": "template", "src": "badge", "id": "pin", "params": { "symbol": "pin.fill", "tooltip": "Pinned" } },
+            { "type": "template", "src": "badge", "id": "sound", "params": { "symbol": "speaker.wave.2.fill", "tooltip": "Sound" } },
+            {
+              "constraints": { "size": { "width": 16, "height": 16 }, "position": "centre" },
+              "id": "browsericon",
+              "type": "imageview",
+              "resize": "fit",
+              "opacity": 0.85
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

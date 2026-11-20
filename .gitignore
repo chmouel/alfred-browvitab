@@ -1,0 +1,5 @@
+target/
+dist/
+workflow/info.plist
+workflow/tabs.alfredui/bin/
+docs-ref/

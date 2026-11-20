@@ -1,0 +1,128 @@
+{
+  "constraints": {
+    "region": "bottom"
+  },
+  "type": "view",
+  "layout": "border",
+  "padding": 8,
+  "spacing": 12,
+  "components": [
+    {
+      "constraints": {
+        "region": "left",
+        "position": "left"
+      },
+      "type": "view",
+      "layout": "inline",
+      "spacing": 6,
+      "components": [
+        {
+          "type": "button",
+          "bordered": false,
+          "text": "↩  Switch",
+          "font": {
+            "size": 11
+          },
+          "contenttintcolour": "secondaryLabelColor",
+          "tooltip": "Switch to the selected tab",
+          "events": [
+            {
+              "triggers": "actioned",
+              "action": "{file:actions/focus-selected.json}"
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "bordered": false,
+          "text": "⌘↩  Copy URL",
+          "font": {
+            "size": 11
+          },
+          "contenttintcolour": "secondaryLabelColor",
+          "tooltip": "Copy the URL of the selected tab",
+          "events": [
+            {
+              "triggers": "actioned",
+              "action": "{file:actions/copy-selected.json}"
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "bordered": false,
+          "text": "⌃↩  Close",
+          "font": {
+            "size": 11
+          },
+          "contenttintcolour": "secondaryLabelColor",
+          "tooltip": "Close the selected tab and keep the list open",
+          "events": [
+            {
+              "triggers": "actioned",
+              "action": "{file:actions/close-selected.json}"
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "bordered": false,
+          "text": "⌘K  Actions",
+          "font": {
+            "size": 11
+          },
+          "contenttintcolour": "secondaryLabelColor",
+          "tooltip": "More actions for the selected tab",
+          "events": [
+            {
+              "triggers": "actioned",
+              "action": "{file:actions/menu-selected.json}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "region": "centre",
+        "position": "right",
+        "stretch": "horizontal"
+      },
+      "id": "status",
+      "type": "label",
+      "text": "",
+      "textalign": "right",
+      "linebreak": "truncatetail",
+      "colour": "tertiaryLabelColor",
+      "font": {
+        "size": 11
+      }
+    },
+    {
+      "constraints": {
+        "region": "right",
+        "position": "centre"
+      },
+      "id": "setup",
+      "type": "button",
+      "hidden": true,
+      "text": "Set Up Browsers…",
+      "effect": "{var:button_effect}",
+      "font": {
+        "size": 11
+      },
+      "tooltip": "Register the native messaging host with your browsers",
+      "events": [
+        {
+          "triggers": "actioned",
+          "action": {
+            "type": "script",
+            "async": true,
+            "src": "bin/raffi-tabs",
+            "args": "ui-setup"
+          }
+        }
+      ]
+    }
+  ]
+}

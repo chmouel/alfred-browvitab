@@ -1,0 +1,10 @@
+Browvitab
+Copyright 2026 Chmouel Boudjnah
+
+This product includes code ported from Raffi (https://github.com/chmouel/raffi),
+Copyright Chmouel Boudjnah, licensed under the Apache License 2.0:
+  - src/host.rs      from src/browser_host.rs
+  - src/install.rs   from src/browser_host.rs (manifest installation)
+  - src/tabs.rs      from src/ui/wayland/browser_tabs.rs (tab ordering)
+
+It talks to the Vicinae browser extension (https://github.com/vicinaehq/vicinae).

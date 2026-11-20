@@ -1,0 +1,10 @@
+{
+  "type": "script",
+  "async": true,
+  "src": "bin/raffi-tabs",
+  "args": [
+    "ui-close",
+    "{value:tabs.selected.uid}",
+    "{var:query}"
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "bundleid": "com.chmouel.alfred-browvitab",
+  "log": {
+    "level": "warning",
+    "internal": true
+  },
+  "variablesconfig": {
+    "query": {
+      "src": "args[0]",
+      "default": ""
+    },
+    "fingerprint": {
+      "default": ""
+    },
+    "navigated": {
+      "default": ""
+    },
+    "button_effect": {
+      "src": "variable",
+      "default": "default"
+    }
+  },
+  "templates": {
+    "badge": {
+      "type": "imageview",
+      "hidden": true,
+      "contenttintcolour": "secondaryLabelColor",
+      "constraints": {
+        "size": {
+          "width": 14,
+          "height": 14
+        },
+        "position": "centre"
+      },
+      "image": {
+        "type": "symbol",
+        "src": "{param:symbol}"
+      },
+      "tooltip": "{param:tooltip}"
+    }
+  },
+  "pulse": {
+    "src": "bin/raffi-tabs",
+    "args": [
+      "ui-watch",
+      "{var:fingerprint}",
+      "{var:query}"
+    ],
+    "intervalmode": "delay",
+    "interval": 0.1
+  },
+  "window": {
+    "title": "Browser Tabs",
+    "size": {
+      "height": 520
+    },
+    "minsize": {
+      "height": 240
+    },
+    "padding": 0,
+    "root": {
+      "type": "view",
+      "layout": "border",
+      "events": [
+        {
+          "triggers": "preload",
+          "action": {
+            "type": "script",
+            "src": "bin/raffi-tabs",
+            "args": [
+              "ui-load",
+              "{var:query}"
+            ]
+          }
+        },
+        {
+          "triggers": "quit",
+          "action": {
+            "type": "script",
+            "src": "bin/raffi-tabs",
+            "args": "ui-quit"
+          }
+        }
+      ],
+      "shortcuts": [
+        {
+          "shortcut": "↑",
+          "action": [
+            {
+              "type": "json",
+              "variables": {
+                "navigated": "1"
+              },
+              "src": {}
+            },
+            {
+              "type": "function",
+              "src": "tabs",
+              "args": "selectup"
+            }
+          ]
+        },
+        {
+          "shortcut": "↓",
+          "action": [
+            {
+              "type": "json",
+              "variables": {
+                "navigated": "1"
+              },
+              "src": {}
+            },
+            {
+              "type": "function",
+              "src": "tabs",
+              "args": "selectdown"
+            }
+          ]
+        },
+        {
+          "shortcut": "⌘↑",
+          "action": [
+            {
+              "type": "json",
+              "variables": {
+                "navigated": "1"
+              },
+              "src": {}
+            },
+            {
+              "type": "function",
+              "src": "tabs",
+              "args": [
+                "selectfirst",
+                "scrolltop"
+              ]
+            }
+          ]
+        },
+        {
+          "shortcut": "⌘↓",
+          "action": [
+            {
+              "type": "json",
+              "variables": {
+                "navigated": "1"
+              },
+              "src": {}
+            },
+            {
+              "type": "function",
+              "src": "tabs",
+              "args": [
+                "selectlast",
+                "scrollbottom"
+              ]
+            }
+          ]
+        },
+        {
+          "shortcut": "⌘↩",
+          "action": "{file:actions/copy-selected.json}"
+        },
+        {
+          "shortcut": "⌃↩",
+          "action": "{file:actions/close-selected.json}"
+        },
+        {
+          "shortcut": "⌘K",
+          "action": "{file:actions/menu-selected.json}"
+        }
+      ],
+      "components": [
+        "{file:components/searchbar.json}",
+        "{file:components/tablist.json}",
+        "{file:components/footer.json}"
+      ]
+    }
+  }
+}

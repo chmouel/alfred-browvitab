@@ -1,0 +1,11 @@
+{
+  "type": "json",
+  "src": {
+    "finish": {
+      "args": "{value:tabs.selected.uid}",
+      "variables": {
+        "tabaction": "focus"
+      }
+    }
+  }
+}

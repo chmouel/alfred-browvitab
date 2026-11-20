@@ -1,0 +1,18 @@
+{
+  "type": "json",
+  "variables": {
+    "copyurl": "{value:tabs.selected.taburl}"
+  },
+  "src": {
+    "copy": {
+      "type": "text",
+      "src": "{var:copyurl}"
+    },
+    "finish": {
+      "args": "",
+      "variables": {
+        "tabaction": "copied"
+      }
+    }
+  }
+}

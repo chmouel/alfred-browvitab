@@ -1,0 +1,113 @@
+[
+  {
+    "text": "Switch to Tab",
+    "action": {
+      "type": "json",
+      "src": {
+        "finish": {
+          "args": "{var:kuid}",
+          "variables": {
+            "tabaction": "focus"
+          }
+        }
+      },
+      "variables": {
+        "kuid": "{data:uid}",
+        "kurl": "{data:taburl}",
+        "ktitle": "{data:tabtitle}",
+        "kmd": "{data:tabmd}"
+      }
+    }
+  },
+  {
+    "type": "separator"
+  },
+  {
+    "text": "Copy URL",
+    "action": {
+      "type": "json",
+      "src": {
+        "copy": {
+          "type": "text",
+          "src": "{var:kurl}"
+        },
+        "finish": {
+          "args": "",
+          "variables": {
+            "tabaction": "copied"
+          }
+        }
+      },
+      "variables": {
+        "kuid": "{data:uid}",
+        "kurl": "{data:taburl}",
+        "ktitle": "{data:tabtitle}",
+        "kmd": "{data:tabmd}"
+      }
+    }
+  },
+  {
+    "text": "Copy Title",
+    "action": {
+      "type": "json",
+      "src": {
+        "copy": {
+          "type": "text",
+          "src": "{var:ktitle}"
+        },
+        "finish": {
+          "args": "",
+          "variables": {
+            "tabaction": "copied"
+          }
+        }
+      },
+      "variables": {
+        "kuid": "{data:uid}",
+        "kurl": "{data:taburl}",
+        "ktitle": "{data:tabtitle}",
+        "kmd": "{data:tabmd}"
+      }
+    }
+  },
+  {
+    "text": "Copy as Markdown Link",
+    "action": {
+      "type": "json",
+      "src": {
+        "copy": {
+          "type": "text",
+          "src": "{var:kmd}"
+        },
+        "finish": {
+          "args": "",
+          "variables": {
+            "tabaction": "copied"
+          }
+        }
+      },
+      "variables": {
+        "kuid": "{data:uid}",
+        "kurl": "{data:taburl}",
+        "ktitle": "{data:tabtitle}",
+        "kmd": "{data:tabmd}"
+      }
+    }
+  },
+  {
+    "type": "separator"
+  },
+  {
+    "text": "Close Tab",
+    "action": {
+      "type": "script",
+      "async": true,
+      "src": "bin/raffi-tabs",
+      "args": [
+        "ui-close",
+        "{data:uid}",
+        "{var:query}"
+      ]
+    }
+  }
+]

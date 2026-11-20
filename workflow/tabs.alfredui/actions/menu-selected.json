@@ -1,0 +1,103 @@
+{
+  "type": "json",
+  "variables": {
+    "kuid": "{value:tabs.selected.uid}",
+    "kurl": "{value:tabs.selected.taburl}",
+    "ktitle": "{value:tabs.selected.tabtitle}",
+    "kmd": "{value:tabs.selected.tabmd}"
+  },
+  "src": {
+    "popupmenu": {
+      "src": "actionsbutton",
+      "menu": [
+        {
+          "text": "Switch to Tab",
+          "action": {
+            "type": "json",
+            "src": {
+              "finish": {
+                "args": "{var:kuid}",
+                "variables": {
+                  "tabaction": "focus"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "text": "Copy URL",
+          "action": {
+            "type": "json",
+            "src": {
+              "copy": {
+                "type": "text",
+                "src": "{var:kurl}"
+              },
+              "finish": {
+                "args": "",
+                "variables": {
+                  "tabaction": "copied"
+                }
+              }
+            }
+          }
+        },
+        {
+          "text": "Copy Title",
+          "action": {
+            "type": "json",
+            "src": {
+              "copy": {
+                "type": "text",
+                "src": "{var:ktitle}"
+              },
+              "finish": {
+                "args": "",
+                "variables": {
+                  "tabaction": "copied"
+                }
+              }
+            }
+          }
+        },
+        {
+          "text": "Copy as Markdown Link",
+          "action": {
+            "type": "json",
+            "src": {
+              "copy": {
+                "type": "text",
+                "src": "{var:kmd}"
+              },
+              "finish": {
+                "args": "",
+                "variables": {
+                  "tabaction": "copied"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "text": "Close Tab",
+          "action": {
+            "type": "script",
+            "async": true,
+            "src": "bin/raffi-tabs",
+            "args": [
+              "ui-close",
+              "{var:kuid}",
+              "{var:query}"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
