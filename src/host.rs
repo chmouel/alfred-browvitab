@@ -1,15 +1,12 @@
-//! Native messaging host for the Vicinae browser extension, ported from
-//! Raffi's `src/browser_host.rs` to macOS.
+//! Native messaging host for the Vicinae browser extension.
 //!
 //! The browser starts this program as the `com.vicinae.vicinae` host when
 //! the extension loads. The host keeps the tab list the extension reports
 //! (`browser/tabs-changed`) and serves it over a Unix socket, one per
 //! running browser instance. Clients ask the host to focus or close a tab,
-//! and the host passes that on to the extension.
-//!
-//! Additions over Raffi: a `generation` counter bumped on every change and
-//! a `watch` request that blocks until it moves, so an open Alfred UI is
-//! refreshed by the extension's own events instead of by enumeration.
+//! and the host passes that on to the extension. A `generation` counter and
+//! a blocking `watch` request let an open Alfred UI refresh on the
+//! extension's own events.
 
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
@@ -329,7 +326,7 @@ impl<W: Write> Host<W> {
                 let data = message.get("data").cloned().unwrap_or(Value::Null);
                 match serde_json::from_value::<Vec<Tab>>(data) {
                     Ok(tabs) => self.mutate(|listing| listing.tabs = tabs),
-                    Err(error) => eprintln!("raffi-tabs host: invalid tab list: {error}"),
+                    Err(error) => eprintln!("browvitab host: invalid tab list: {error}"),
                 }
                 Ok(())
             }
@@ -415,7 +412,7 @@ impl<W: Write> Host<W> {
         drop(state);
         if let Err(err) = self.send_for_client(
             &json!({
-                "id": format!("raffi-{}", self.next_id.fetch_add(1, Ordering::SeqCst)),
+                "id": format!("browvitab-{}", self.next_id.fetch_add(1, Ordering::SeqCst)),
                 "method": method,
                 "data": { "tabId": tab_id }
             }),
@@ -526,20 +523,20 @@ pub fn serve_clients<W: Write + Send + 'static>(
         let busy = active.fetch_add(1, Ordering::SeqCst) >= max;
         let slot = ClientSlot(Arc::clone(&active));
         if busy {
-            eprintln!("raffi-tabs host: too many clients, dropping one");
+            eprintln!("browvitab host: too many clients, dropping one");
             continue;
         }
         let host = Arc::clone(&host);
         let spawned = thread::Builder::new()
-            .name("raffi-tabs-client".to_string())
+            .name("browvitab-client".to_string())
             .spawn(move || {
                 let _slot = slot;
                 if let Err(error) = host.serve_client(stream) {
-                    eprintln!("raffi-tabs host: client error: {error}");
+                    eprintln!("browvitab host: client error: {error}");
                 }
             });
         if let Err(error) = spawned {
-            eprintln!("raffi-tabs host: cannot serve a client: {error}");
+            eprintln!("browvitab host: cannot serve a client: {error}");
         }
     }
 }
@@ -549,19 +546,18 @@ fn current_uid() -> u32 {
     unsafe { libc::getuid() }
 }
 
-/// Where the hosts put their sockets: `$RAFFI_TABS_SOCKET_DIR` for tests,
-/// otherwise `/tmp/raffi-<uid>/browsers`, the same place Raffi uses without
-/// a runtime directory. A fixed path keeps browsers (started by launchd)
+/// Where the hosts put their sockets: `$BROWVITAB_SOCKET_DIR` for tests,
+/// otherwise `/tmp/browvitab-<uid>/browsers`. A fixed path keeps browsers (started by launchd)
 /// and Alfred scripts (with their own environment) in agreement, and stays
 /// well under the 104-byte socket path limit of macOS.
 pub fn socket_dir() -> io::Result<PathBuf> {
     let uid = current_uid();
-    if let Some(dir) = std::env::var_os("RAFFI_TABS_SOCKET_DIR").filter(|d| !d.is_empty()) {
+    if let Some(dir) = std::env::var_os("BROWVITAB_SOCKET_DIR").filter(|d| !d.is_empty()) {
         let dir = PathBuf::from(dir);
         private_dir(&dir, uid)?;
         return Ok(dir);
     }
-    let base = PathBuf::from(format!("/tmp/raffi-{uid}"));
+    let base = PathBuf::from(format!("/tmp/browvitab-{uid}"));
     private_dir(&base, uid)?;
     let dir = base.join("browsers");
     private_dir(&dir, uid)?;
@@ -678,7 +674,7 @@ pub fn run_native_host(args: &[String]) -> i32 {
     let dir = match socket_dir() {
         Ok(dir) => dir,
         Err(error) => {
-            eprintln!("raffi-tabs host: no socket directory: {error}");
+            eprintln!("browvitab host: no socket directory: {error}");
             return 1;
         }
     };
@@ -688,7 +684,7 @@ pub fn run_native_host(args: &[String]) -> i32 {
         Ok(listener) => listener,
         Err(error) => {
             eprintln!(
-                "raffi-tabs host: cannot listen on {}: {error}",
+                "browvitab host: cannot listen on {}: {error}",
                 socket.display()
             );
             return 1;
@@ -700,7 +696,7 @@ pub fn run_native_host(args: &[String]) -> i32 {
     let out = match io::stdout().as_fd().try_clone_to_owned() {
         Ok(out) => fs::File::from(out),
         Err(error) => {
-            eprintln!("raffi-tabs host: cannot use the output: {error}");
+            eprintln!("browvitab host: cannot use the output: {error}");
             let _ = fs::remove_file(&socket);
             return 1;
         }
@@ -713,7 +709,7 @@ pub fn run_native_host(args: &[String]) -> i32 {
     if let Some(pid) = gecko_pid {
         let host = Arc::clone(&host);
         let _ = thread::Builder::new()
-            .name("raffi-tabs-profile".to_string())
+            .name("browvitab-profile".to_string())
             .spawn(move || {
                 if let Some(dir) = macos::gecko_profile_dir(pid) {
                     let name = macos::gecko_profile_name(&dir);
@@ -727,10 +723,10 @@ pub fn run_native_host(args: &[String]) -> i32 {
 
     let server = Arc::clone(&host);
     if let Err(error) = thread::Builder::new()
-        .name("raffi-tabs-server".to_string())
+        .name("browvitab-server".to_string())
         .spawn(move || serve_clients(listener, server, MAX_CLIENTS))
     {
-        eprintln!("raffi-tabs host: cannot start the socket server: {error}");
+        eprintln!("browvitab host: cannot start the socket server: {error}");
         let _ = fs::remove_file(&socket);
         return 1;
     }
@@ -740,12 +736,12 @@ pub fn run_native_host(args: &[String]) -> i32 {
         match read_frame(&mut stdin) {
             Ok(Some(body)) => {
                 if let Err(error) = host.handle_extension_message(&body) {
-                    eprintln!("raffi-tabs host: {error}");
+                    eprintln!("browvitab host: {error}");
                 }
             }
             Ok(None) => break 0,
             Err(error) => {
-                eprintln!("raffi-tabs host: {error}");
+                eprintln!("browvitab host: {error}");
                 break 1;
             }
         }
@@ -931,8 +927,8 @@ pub fn ask_all(
                 if stale {
                     let _ = fs::remove_file(&socket);
                 }
-                if std::env::var_os("RAFFI_TABS_DEBUG").is_some() {
-                    eprintln!("raffi-tabs: {}: {error}", socket.display());
+                if std::env::var_os("BROWVITAB_DEBUG").is_some() {
+                    eprintln!("browvitab: {}: {error}", socket.display());
                 }
                 None
             }
@@ -1067,8 +1063,8 @@ mod tests {
         assert_eq!(
             sent(&out),
             vec![
-                json!({ "id": "raffi-1", "method": "browser/focus-tab", "data": { "tabId": 5 } }),
-                json!({ "id": "raffi-2", "method": "browser/close-tab", "data": { "tabId": 5 } }),
+                json!({ "id": "browvitab-1", "method": "browser/focus-tab", "data": { "tabId": 5 } }),
+                json!({ "id": "browvitab-2", "method": "browser/close-tab", "data": { "tabId": 5 } }),
             ]
         );
         // Closed tabs vanish at once.

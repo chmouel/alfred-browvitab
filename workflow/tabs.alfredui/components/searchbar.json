@@ -38,7 +38,7 @@
           "action": {
             "type": "script",
             "async": true,
-            "src": "bin/raffi-tabs",
+            "src": "bin/browvitab",
             "args": ["ui-rank", "{value:self.text}", "{var:navigated}"]
           }
         },

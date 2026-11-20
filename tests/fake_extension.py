@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A stand-in for the Vicinae browser extension, for tests and benchmarks.
 
-Starts raffi-tabs in native-host mode, exactly as a browser would, and
+Starts browvitab in native-host mode, exactly as a browser would, and
 speaks the extension side of the protocol: browser/init, then
 browser/tabs-changed, and it honours focus-tab / close-tab like the real
 extension (closing re-sends the list).

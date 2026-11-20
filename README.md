@@ -10,7 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/chmouel/alfred-browvitab?sort=semver)](https://github.com/chmouel/alfred-browvitab/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/chmouel/alfred-browvitab/total)](https://github.com/chmouel/alfred-browvitab/releases)
 [![Alfred 6](https://img.shields.io/badge/Alfred-6%20Powerpack-5C1F87?logo=alfred&logoColor=white)](https://www.alfredapp.com/powerpack/)
-[![macOS](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple&logoColor=white)](#requirements)
+[![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-000000?logo=apple&logoColor=white)](#requirements)
 [![Firefox](https://img.shields.io/badge/Firefox-supported-FF7139?logo=firefoxbrowser&logoColor=white)](#connect-your-browsers)
 [![Chrome · Brave](https://img.shields.io/badge/Chrome%20%C2%B7%20Brave-supported-4285F4?logo=googlechrome&logoColor=white)](#connect-your-browsers)
 [![Rust](https://img.shields.io/badge/built%20with-Rust-B7410E?logo=rust&logoColor=white)](src/)
@@ -25,9 +25,6 @@ browsers you run, in a single native Alfred window. Type a few letters of a
 title or a site, press <kbd>↩</kbd>, and you land on that tab in the right
 window, even with several Firefox profiles open.
 
-It brings the browser integration of [Raffi](https://github.com/chmouel/raffi),
-a Linux launcher, to macOS and Alfred 6.
-
 ## Highlights
 
 - One list for all your browsers. Pinned tabs sit at the top, and the tab you
@@ -41,13 +38,12 @@ a Linux launcher, to macOS and Alfred 6.
   next tab is selected for you.
 - Site icons come from your browsers' own caches. Nothing is downloaded and no
   tab ever leaves your Mac.
-- Prefer Alfred's classic result list? The `tabl` keyword gives you the same
-  tabs there.
+- The `tabl` keyword shows the same tabs in Alfred's classic result list.
 
 ## How it compares
 
-Several good tab workflows already exist. They each target one browser family;
-Browvitab covers Firefox and Chromium together.
+Other tab workflows each cover one browser family. Browvitab puts Firefox and
+the Chromium browsers in the same list.
 
 | | Browvitab | [Browser Tabs](https://alfred.app/workflows/epilande/browser-tabs/) | [Firefox Assistant](https://github.com/deanishe/alfred-firefox) | [Safari Tools](https://alfred.app/workflows/alfredapp/safari-tools/) | [Arc Tabs and Spaces](https://alfred.app/workflows/caicailiushui/arc-tabs-and-spaces/) |
 | --- | :---: | :---: | :---: | :---: | :---: |
@@ -71,7 +67,7 @@ pick one of the others.
 
 ## Requirements
 
-- macOS 14 or later
+- macOS with Alfred 6 installed
 - [Alfred 6](https://www.alfredapp.com) with the
   [Powerpack](https://www.alfredapp.com/powerpack/)
 - The Vicinae extension in at least one browser
@@ -104,7 +100,7 @@ workflow in Alfred for import.
 3. Wait up to a minute, or turn the extension off and on again. Its toolbar
    popup then says it is connected.
 
-That's it. Type `tabs` in Alfred.
+Then type `tabs` in Alfred.
 
 > [!NOTE]
 > The extension talks to one program at a time. If you also use Vicinae
@@ -139,13 +135,13 @@ same tabs as regular Alfred results, with <kbd>⌘</kbd><kbd>↩</kbd> to copy a
 The quickest way is the workflow's own Hotkey, set to <kbd>⌥</kbd><kbd>⌘</kbd><kbd>T</kbd>
 out of the box. Change it in Alfred Preferences, Workflows, Browvitab.
 
-To start Browvitab from another tool (skhd, Hammerspoon, Karabiner, a Stream Deck
-or a shell alias), call its external trigger. Both forms accept an optional search:
+Other tools (skhd, Hammerspoon, Karabiner, a Stream Deck, a shell alias) can
+open it through its external trigger, with or without a search:
 
 ```sh
 open "alfred://runtrigger/com.chmouel.alfred-browvitab/tabs/?argument=github"
 
-osascript -e 'tell application id "com.runningwithcrayons.Alfred" to run trigger "tabs" in workflow "com.chmouel.alfred-browvitab"'
+osascript -e 'tell application id "com.runningwithcrayons.Alfred" to run trigger "tabs" in workflow "com.chmouel.alfred-browvitab" with argument "github"'
 ```
 
 <details>
@@ -192,28 +188,38 @@ Open Browvitab in Alfred Preferences and click *Configure Workflow* to change:
 
 ## Troubleshooting
 
-**`tabs` says no browser is connected.** Run `tabs:setup` again, then open the
+### No browser is connected
+
+Run `tabs:setup` again, then open the
 extension's popup in the browser. If it still says disconnected, toggle the
 extension off and on. From a terminal,
 
 ```sh
-~/Library/Application\ Support/raffi-alfred/bin/raffi-tabs status
+~/Library/Application\ Support/browvitab/bin/browvitab status
 ```
 
 lists each browser, who it talks to, and every connected browser with its tab
 count.
 
-**Vicinae owns the connection.** `status` shows *Vicinae* for that browser. Run
+### Vicinae owns the connection
+
+`status` shows *Vicinae* for that browser. Run
 `./install.sh --force` to switch it to Browvitab.
 
-**macOS blocks the downloaded helper.** Releases are not notarised yet. If the
+### macOS blocks the downloaded helper
+
+Releases are not notarised yet. If the
 extension cannot start Browvitab after you import a downloaded copy, build it
 from source with `./install.sh`, which never needs Gatekeeper exceptions.
 
-**A browser is missing.** Browvitab only registers browsers that have been
+### A browser is missing
+
+Browvitab only registers browsers that have been
 started at least once. Start it, then run `tabs:setup` again.
 
-**Something else.** `touch /tmp/raffi-$(id -u)/trace` makes every action log to
+### Anything else
+
+`touch /tmp/browvitab-$(id -u)/trace` makes every action log to
 that file. Open an issue with its contents.
 
 ## Uninstall
@@ -229,19 +235,12 @@ hand the browsers back.
 ## How it works
 
 Each browser starts a small helper when the extension loads. The helper keeps
-that browser's tab list and answers Alfred over a private local socket, so
-opening the list takes a few milliseconds and nothing polls your browsers.
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the details: the Alfred UI
-design, the live refresh, the macOS port of Raffi's host, and the validation
-notes.
-
-## Credits
-
-Browvitab reuses the browser host and tab ordering from
-[Raffi](https://github.com/chmouel/raffi) and talks to the
-[Vicinae](https://github.com/vicinaehq/vicinae) browser extension. Alfred is a
-trademark of Running with Crayons Ltd.
+that browser's tab list and answers Alfred over a private local socket, so the
+list opens in a few milliseconds and nothing polls your browsers.
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) covers the Alfred UI, the live
+refresh and the macOS details.
 
 ## License
 
-[Apache License 2.0](LICENSE), like Raffi.
+[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for third-party code.
+Alfred is a trademark of Running with Crayons Ltd.

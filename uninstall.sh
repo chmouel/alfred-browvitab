@@ -1,5 +1,5 @@
 #!/bin/bash
-# Remove Raffi Browser Tabs: our native messaging manifests (never Vicinae's),
+# Remove Browvitab: our native messaging manifests (never Vicinae's),
 # the installed host binary and caches, and optionally the Alfred workflow.
 #
 #   ./uninstall.sh              remove host, manifests and caches
@@ -7,18 +7,18 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-HOST="$HOME/Library/Application Support/raffi-alfred/bin/raffi-tabs"
-BIN=workflow/tabs.alfredui/bin/raffi-tabs
+HOST="$HOME/Library/Application Support/browvitab/bin/browvitab"
+BIN=workflow/tabs.alfredui/bin/browvitab
 if [[ -x $HOST ]]; then
   # Copy first: uninstall deletes the directory holding $HOST.
-  tmp=$(mktemp -t raffi-tabs)
+  tmp=$(mktemp -t browvitab)
   cp "$HOST" "$tmp"
   "$tmp" uninstall
   rm -f "$tmp"
 elif [[ -x $BIN ]]; then
-  RAFFI_TABS_NO_COPY=1 "$BIN" uninstall
+  BROWVITAB_NO_COPY=1 "$BIN" uninstall
 else
-  echo "raffi-tabs binary not found; nothing to unregister."
+  echo "browvitab binary not found; nothing to unregister."
 fi
 
 if [[ ${1:-} == --workflow ]]; then
@@ -31,5 +31,5 @@ if [[ ${1:-} == --workflow ]]; then
     fi
   done
 fi
-rm -rf "/tmp/raffi-$(id -u)/alfred-ui-watch.pid" "/tmp/raffi-$(id -u)/trace"
+rm -rf "/tmp/browvitab-$(id -u)/alfred-ui-watch.pid" "/tmp/browvitab-$(id -u)/trace"
 echo "Running browser hosts stop when their browser quits or the extension is disabled."

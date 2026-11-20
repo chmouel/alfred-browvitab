@@ -15,7 +15,7 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WF = os.path.join(ROOT, "workflow")
 DIST = os.path.join(ROOT, "dist")
-BIN = "./tabs.alfredui/bin/raffi-tabs"
+BIN = "./tabs.alfredui/bin/browvitab"
 VERSION = os.environ.get("BROWVITAB_VERSION", "0.1.0")
 BUNDLE_ID = "com.chmouel.alfred-browvitab"
 
@@ -260,8 +260,8 @@ def build_binary():
     binary = os.environ.get("BROWVITAB_BINARY")
     if not binary:
         subprocess.run(["cargo", "build", "--release"], cwd=ROOT, check=True)
-        binary = os.path.join(ROOT, "target", "release", "raffi-tabs")
-    dest = os.path.join(WF, "tabs.alfredui", "bin", "raffi-tabs")
+        binary = os.path.join(ROOT, "target", "release", "browvitab")
+    dest = os.path.join(WF, "tabs.alfredui", "bin", "browvitab")
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     shutil.copy2(binary, dest)
     os.chmod(dest, 0o755)

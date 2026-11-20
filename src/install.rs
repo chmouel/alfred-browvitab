@@ -1,5 +1,4 @@
-//! Native messaging manifest registration on macOS, ported from Raffi's
-//! `install_manifests`/`uninstall_manifests`. Manifests that start Vicinae
+//! Native messaging manifest registration on macOS. Manifests that start Vicinae
 //! or anything else not installed by us are never replaced without
 //! `--force`.
 
@@ -13,10 +12,9 @@ use serde_json::{json, Value};
 use crate::host::{CHROME_EXTENSION_ID, FIREFOX_EXTENSION_ID, HOST_NAME};
 
 /// Written into every manifest we install, to tell them apart from
-/// manifests of other hosts (Raffi on Linux uses its own description).
+/// manifests of other hosts.
 pub const MANIFEST_DESCRIPTION: &str =
-    "Raffi Alfred native messaging host for the Vicinae browser extension";
-const RAFFI_DESCRIPTION: &str = "Raffi native messaging host for the Vicinae browser extension";
+    "Browvitab native messaging host for the Vicinae browser extension";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ManifestKind {
@@ -111,7 +109,7 @@ pub enum Owner {
     /// Installed by us, starting this program.
     Ours(PathBuf),
     Vicinae,
-    /// Raffi (Linux) or anything else, described for the user.
+    /// Anything else, described for the user.
     Other(String),
 }
 
@@ -137,9 +135,6 @@ pub fn manifest_owner(path: &Path) -> Option<Owner> {
     let description = manifest.get("description").and_then(Value::as_str);
     Some(match program {
         Some(program) if description == Some(MANIFEST_DESCRIPTION) => Owner::Ours(program),
-        Some(program) if description == Some(RAFFI_DESCRIPTION) => {
-            Owner::Other(format!("it starts Raffi at {}", program.display()))
-        }
         Some(program) if is_vicinae(&program) => Owner::Vicinae,
         Some(program) => Owner::Other(format!("it starts {}", program.display())),
         None => Owner::Other("it names no program".to_string()),
@@ -319,18 +314,18 @@ pub fn support_dir() -> io::Result<PathBuf> {
 /// Stable home of the host binary, outside the (possibly synced) workflow
 /// folder, so manifests keep working when Alfred preferences move.
 pub fn install_dir(support: &Path) -> PathBuf {
-    support.join("raffi-alfred")
+    support.join("browvitab")
 }
 
 /// Copy `exe` into the install dir (atomically) and return the new path.
 pub fn install_binary(support: &Path, exe: &Path) -> io::Result<PathBuf> {
     let dir = install_dir(support).join("bin");
     fs::create_dir_all(&dir)?;
-    let dest = dir.join("raffi-tabs");
+    let dest = dir.join("browvitab");
     if fs::canonicalize(exe).ok() == fs::canonicalize(&dest).ok() {
         return Ok(dest);
     }
-    let temp = dir.join(format!(".raffi-tabs.{}.tmp", std::process::id()));
+    let temp = dir.join(format!(".browvitab.{}.tmp", std::process::id()));
     fs::copy(exe, &temp)?;
     let result = fs::set_permissions(&temp, std::os::unix::fs::PermissionsExt::from_mode(0o755))
         .and_then(|()| fs::rename(&temp, &dest));
@@ -346,7 +341,7 @@ mod tests {
 
     fn support() -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "raffi-install-{}-{:?}",
+            "browvitab-install-{}-{:?}",
             std::process::id(),
             std::thread::current().id()
         ));
@@ -359,7 +354,7 @@ mod tests {
     #[test]
     fn installs_only_for_present_browsers_and_is_idempotent() {
         let s = support();
-        let exe = Path::new("/opt/raffi-tabs");
+        let exe = Path::new("/opt/browvitab");
         let reports = install_manifests(&s, exe, false);
         assert_eq!(reports.len(), 2);
         assert!(reports.iter().all(|r| r.outcome == Outcome::Written));
@@ -385,14 +380,14 @@ mod tests {
             r#"{"name":"com.vicinae.vicinae","path":"/usr/bin/vicinae"}"#,
         )
         .unwrap();
-        let reports = install_manifests(&s, Path::new("/x/raffi-tabs"), false);
+        let reports = install_manifests(&s, Path::new("/x/browvitab"), false);
         let ff = reports.iter().find(|r| r.path == path).unwrap();
         assert_eq!(ff.outcome, Outcome::Kept("it starts Vicinae".into()));
         assert!(fs::read_to_string(&path).unwrap().contains("vicinae\""));
         // Uninstall never removes it either.
         uninstall_manifests(&s);
         assert!(path.exists());
-        let forced = install_manifests(&s, Path::new("/x/raffi-tabs"), true);
+        let forced = install_manifests(&s, Path::new("/x/browvitab"), true);
         assert!(forced
             .iter()
             .any(|r| r.path == path && r.outcome == Outcome::Written));

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install Raffi Browser Tabs for Alfred 6.
+# Install Browvitab for Alfred 6.
 #
 #   ./install.sh            build if needed, import the workflow, register the host
 #   ./install.sh --force    also replace manifests owned by Vicinae or others
@@ -25,7 +25,7 @@ for arg in "$@"; do
 done
 
 WORKFLOW=dist/Browvitab.alfredworkflow
-BIN=workflow/tabs.alfredui/bin/raffi-tabs
+BIN=workflow/tabs.alfredui/bin/browvitab
 
 if [[ ! -x $BIN || ! -f $WORKFLOW ]]; then
   if command -v cargo >/dev/null; then

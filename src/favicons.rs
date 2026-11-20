@@ -1,8 +1,8 @@
-//! Site icons from the browsers' own favicon databases, like Raffi does,
-//! but without any network access. Lookups run through the system
+//! Site icons from the browsers' own favicon databases, without any
+//! network access. Lookups run through the system
 //! `sqlite3` with `immutable=1`, so locked databases are read without
 //! waiting, and results are cached per host in
-//! `~/Library/Caches/raffi-alfred/favicons` (misses are retried weekly).
+//! `~/Library/Caches/browvitab/favicons` (misses are retried weekly).
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -20,11 +20,11 @@ const EXTENSIONS: [&str; 6] = ["png", "ico", "svg", "jpg", "gif", "webp"];
 const MAX_LOOKUPS: usize = 150;
 
 pub fn cache_dir() -> Option<PathBuf> {
-    if let Some(dir) = std::env::var_os("RAFFI_TABS_CACHE_DIR").filter(|d| !d.is_empty()) {
+    if let Some(dir) = std::env::var_os("BROWVITAB_CACHE_DIR").filter(|d| !d.is_empty()) {
         return Some(PathBuf::from(dir).join("favicons"));
     }
     let home = std::env::var_os("HOME")?;
-    Some(PathBuf::from(home).join("Library/Caches/raffi-alfred/favicons"))
+    Some(PathBuf::from(home).join("Library/Caches/browvitab/favicons"))
 }
 
 fn key(host: &str) -> String {
@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn looks_up_a_gecko_database() {
-        let dir = std::env::temp_dir().join(format!("raffi-fav-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("browvitab-fav-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let db = dir.join("favicons.sqlite");

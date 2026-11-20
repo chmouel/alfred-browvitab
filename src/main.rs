@@ -1,4 +1,4 @@
-//! raffi-tabs: browser tab switcher for Alfred 6.
+//! browvitab: browser tab switcher for Alfred 6.
 //!
 //! One binary is the browser's native messaging host (started by the
 //! browser, detected from its arguments) and the command-line back end for
@@ -30,18 +30,18 @@ const LIST_TIMEOUT: Duration = Duration::from_millis(1500);
 const WATCH_WINDOW: Duration = Duration::from_secs(25);
 
 const USAGE: &str = "\
-raffi-tabs — browser tabs for Alfred 6 (Vicinae extension host)
+browvitab — browser tabs for Alfred 6 (Vicinae extension host)
 
 Usage:
-  raffi-tabs list                     Print connected browsers and tabs
-  raffi-tabs filter [QUERY]           Script Filter JSON
-  raffi-tabs focus UID                Switch to a tab and raise its window
-  raffi-tabs close UID                Close a tab
-  raffi-tabs url UID                  Print a tab's URL
-  raffi-tabs install [--force]        Install the host and browser manifests
-  raffi-tabs uninstall                Remove what install added
-  raffi-tabs status                   Show manifests and connected hosts
-  raffi-tabs bench [N]                Time N list+render rounds
+  browvitab list                     Print connected browsers and tabs
+  browvitab filter [QUERY]           Script Filter JSON
+  browvitab focus UID                Switch to a tab and raise its window
+  browvitab close UID                Close a tab
+  browvitab url UID                  Print a tab's URL
+  browvitab install [--force]        Install the host and browser manifests
+  browvitab uninstall                Remove what install added
+  browvitab status                   Show manifests and connected hosts
+  browvitab bench [N]                Time N list+render rounds
 Alfred UI back end:
   ui-load [QUERY] | ui-watch FINGERPRINT [QUERY] | ui-rank QUERY [NAVIGATED]
   ui-close UID [QUERY] | ui-setup | ui-quit
@@ -81,13 +81,13 @@ fn main() -> ExitCode {
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            eprintln!("raffi-tabs: {error}");
+            eprintln!("browvitab: {error}");
             ExitCode::FAILURE
         }
     }
 }
 
-/// Troubleshooting: when `/tmp/raffi-<uid>/trace` exists, log every
+/// Troubleshooting: when `/tmp/browvitab-<uid>/trace` exists, log every
 /// invocation there (Alfred UI scripts get no visible stderr).
 fn trace(args: &[String]) {
     let Ok(dir) = host::socket_dir() else { return };
@@ -263,7 +263,7 @@ fn print_reports(reports: &[install::Report]) {
 fn install_now(force: bool) -> Result<(PathBuf, Vec<install::Report>), String> {
     let support = install::support_dir().map_err(|e| e.to_string())?;
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let target = if std::env::var_os("RAFFI_TABS_NO_COPY").is_some() {
+    let target = if std::env::var_os("BROWVITAB_NO_COPY").is_some() {
         exe
     } else {
         install::install_binary(&support, &exe).map_err(|e| format!("cannot copy the host: {e}"))?
@@ -309,7 +309,7 @@ fn cmd_status() -> Result<(), String> {
         let who = match owner {
             None => "no manifest".to_string(),
             Some(install::Owner::Ours(p)) => format!(
-                "raffi-tabs at {}{}",
+                "browvitab at {}{}",
                 p.display(),
                 if p.exists() { "" } else { " (missing!)" }
             ),
@@ -375,7 +375,7 @@ fn placeholder(browsers: &[Connected]) -> String {
     }
 }
 
-/// Preload: fill the list before the UI shows. The first row is Raffi's
+/// Preload: fill the list before the UI shows. The first row is the
 /// "previous tab", so ↩ right away switches back.
 fn ui_load(query: &str) -> Result<(), String> {
     let browsers = connected()?;

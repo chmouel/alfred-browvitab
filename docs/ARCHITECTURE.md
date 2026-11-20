@@ -1,173 +1,197 @@
 # How Browvitab works
 
-Browvitab reuses the browser side of [Raffi](https://github.com/chmouel/raffi):
-the Vicinae extension talks to a native messaging host, one host per running
-browser, and the host serves the tab list over a Unix socket. This document
-covers the Alfred 6 side, the macOS port and how the pieces were validated.
+The Vicinae browser extension starts a small helper program (the *host*)
+through the browser's native messaging. Each running browser gets its own
+host, which keeps that browser's tab list and answers requests on a private
+Unix socket. The Alfred workflow asks every host for its tabs, shows them in a
+native Alfred UI, and sends focus or close requests back.
 
-| Path | What |
+| Path | What it holds |
 | --- | --- |
-| `src/host.rs` | Native messaging host and socket client, ported from Raffi `src/browser_host.rs` |
-| `src/tabs.rs` | Ordering and ranking, ported from Raffi `src/ui/wayland/browser_tabs.rs` |
-| `src/alfred.rs` | Alfred UI data, JSON Actions and Script Filter JSON |
+| `src/host.rs` | The native messaging host and the socket client |
+| `src/tabs.rs` | Tab ordering and search ranking |
+| `src/alfred.rs` | Data for the Alfred UI and JSON for the Script Filter |
 | `src/favicons.rs` | Site icons read from the browsers' own favicon databases |
-| `src/install.rs` | Native messaging manifest registration on macOS |
-| `src/macos.rs` | libproc lookups and per-process app activation |
+| `src/install.rs` | Native messaging manifest registration |
+| `src/macos.rs` | Process lookups and per-process app activation |
 | `workflow/tabs.alfredui/` | The Alfred UI package |
 | `scripts/build.py` | Builds the binary, writes `info.plist`, packages the workflow |
-| `tests/fake_extension.py` | Stand-in for the browser extension, for tests |
+| `scripts/icon.swift` | Draws the workflow icon |
+| `tests/fake_extension.py` | A stand-in for the browser extension, used in tests |
 
-## How it uses Alfred 6
+One binary, `browvitab`, plays both parts. When a browser starts it with the
+native messaging arguments it runs as a host; otherwise it is the command-line
+back end for the workflow (`browvitab --help`).
 
-* **Alfred UI object, inside Alfred, stacked.** Keyword, hotkey and an external
-  trigger (`tabs`) all open `tabs.alfredui`; the UI's `finish` passes the tab id
-  and a `tabaction` variable to a Run Script that switches tabs.
-* **Layouts.** Border layouts for the window (search bar / list / footer) and the
-  cell; inline layouts for text, badges and key hints.
-* **`dataview` with the `basic` provider and `basic` filter.** The search field's
-  `changed` event calls `filterdata`, so every keystroke filters natively without
-  starting a process. The filter matches a hidden `match` field (title, host,
-  URL split into words, full URL) with `wordmatchanyorder`, so "pipe pull"
-  finds `…/pipelines-as-code/pull/…`.
-* **Ranking outside the UI, off the keystroke path.** The native filter keeps the
-  data order. When typing stops (`typingstopped`, async script), the back end
-  re-sorts by match quality (title prefix > site > word start > URL; a pasted URL
-  puts that site first) and selects the best match, unless you already moved the
-  selection (`navigated` variable).
-* **Stable uids** `<host pid>:<tab id>` drive reselection: data replacements use
-  `select` with `{value:tabs.selected.uid}` read when the actions run, so a
-  refresh never moves the selection.
-* **Templates** for the cell badges (`badge`) and footer key hints (`keyhint`);
-  shared actions live in `actions/*.json` and are included with `{file:}`.
-* **Native menus.** The cell `menu` (right-click) and a `popupmenu` JSON Action on
-  ⌘K / the ⋯ button.
-* **JSON Actions** do everything that needs no process: `copy`, `finish`,
-  `update`, `functions` (`selectup`, `filterdata`, …), `popupmenu`.
-* **Async script actions** for close, rank and setup.
-* **Pulse as an event-driven long poll** (see below).
-* **Appearance.** Only system and Alfred theme colours (`labelColor`,
-  `secondaryLabelColor`, `alfredSelectedResultBackgroundColor`, …), so light,
-  dark and the user's theme apply. The window keeps Alfred's blur; the buttons can
-  use the macOS 26 `glass` effect (Workflow Configuration → *Button style*).
+## The Alfred UI
 
-### Live updates
+The keyword, the hotkey and the external trigger all open `tabs.alfredui`
+inside Alfred, with stacking on so <kbd>⎋</kbd> returns to Alfred. When you
+pick a tab, the UI's `finish` action hands the tab id to a Run Script object
+that switches to it.
 
-Raffi's host already receives `browser/tabs-changed` events. This port adds a
-change counter (`generation`) to the host and a `watch` request that blocks
-until it moves. The UI's pulse runs `raffi-tabs ui-watch <fingerprint> <query>`:
+The window is a border layout: search field on top, a `dataview` in the
+middle and a footer of buttons. Each row is a border layout too, with the
+favicon on the left, title and site in the middle, and the pin, sound and
+browser icons on the right. The badge and the shared actions are reused
+through a template and `{file:}` includes.
 
-1. List the hosts (sub-millisecond). If the state differs from the fingerprint
-   the UI holds, print one `update` (new data, same filter, selection kept) and
-   exit.
-2. Otherwise send `watch` to every host and wait. Wake on the first host change,
-   on a browser connecting or leaving (socket directory), when the UI quits, or
-   after 25 s, and exit with an empty JSON object; the pulse restarts 100 ms later
-   with fresh arguments and goes to step 1.
+Typing never starts a process. The search field's `changed` event calls the
+dataview's `filterdata`, and Alfred's `basic` filter matches a hidden `match`
+field holding the title, the site and the address split into words, with the
+`wordmatchanyorder` mode. Alfred keeps the data in its original order, so
+once you pause (`typingstopped`), an async script sorts the list by match
+quality and selects the best hit. If you have already moved the selection
+with the arrow keys, it stays where you put it.
 
-So while the UI is open there is no enumeration loop, only one blocked process
-waiting on the extension's own events; a change reaches the screen in about
-200 ms. The UI's `quit` event removes the watcher's pid file and the watcher
-exits within half a second, so nothing keeps running after the UI closes. No
-permanent service exists: the only long-lived processes are the hosts the
-browsers start, exactly as with Raffi.
+Every row has a uid of the form `<host pid>:<tab id>`. Data refreshes pass
+`select` with the current selection, read through `{value:tabs.selected.uid}`
+when the update is applied, so a refresh never moves you.
 
-Closing a tab (⌃↩) asks the host, which drops the tab from its list at once,
-and answers with the new data and the neighbouring row (the next visible row,
-or the previous one at the end) selected, so ⌃↩ can close several tabs in a row.
+Copying, finishing, menus and selection changes are JSON Actions and run
+inside Alfred. Only closing a tab, ranking and setup run the binary, and
+those run asynchronously.
 
-## macOS port of the host
+The UI uses only system colours and Alfred's theme colours
+(`alfredSelectedResultBackgroundColor` and friends), so it follows light and
+dark mode and your Alfred theme. The buttons can use the macOS 26 glass
+effect from the Workflow Configuration.
 
-Kept from Raffi: the Vicinae extension and its protocol
-(`browser/init`, `browser/tabs-changed`, `browser/focus-tab`,
-`browser/close-tab`), one host process and Unix socket per browser instance
-(`/tmp/raffi-<uid>/browsers/<pid>.sock`, private directory), JSON-line requests,
-monotonic `expires` deadlines so late requests are never carried out, the
-500 ms back-pressure check before writing to the browser, client limits, timeouts,
-and stale socket cleanup.
+### Keys that work, and one that does not
 
-Changed for macOS:
+<kbd>⌘</kbd><kbd>↩</kbd>, <kbd>⌃</kbd><kbd>↩</kbd>, <kbd>⌘</kbd><kbd>K</kbd>
+and the arrow keys are view shortcuts on the window's root view. Option-Return
+never reaches those shortcuts: the focused search field swallows it and Alfred
+logs no key event at all. Closing a tab therefore uses <kbd>⌃</kbd><kbd>↩</kbd>.
 
-* `/proc` lookups are replaced with libproc (`proc_pidpath`, `proc_pidinfo`); the
-  browser is identified from its `.app` bundle (Firefox, Brave, Chrome…).
-* Stale sockets are removed only when their pid is gone (macOS refuses
-  connections at once when a backlog is full, so a refusal alone is not proof).
-* Profiles: Gecko hosts find their profile from the `.parentlock` the browser
-  holds open, and name it from `profiles.ini`. Each Firefox profile runs as its
-  own process with its own host, so tabs never mix and the uid keeps them apart.
-  Chromium runs every profile in one process and does not tell the host which
-  profile it serves, so no profile is shown there.
-* Window raising: after the extension activates the tab and focuses its window,
-  the back end activates the browser **process** with
-  `NSRunningApplication` (by pid, so the right Firefox instance comes forward,
-  not just any `Firefox.app`).
-* Favicons come only from the browsers' own databases (`favicons.sqlite`,
-  `Favicons`), read through `/usr/bin/sqlite3` with `immutable=1`; there is no
-  network access. Icons are cached in `~/Library/Caches/raffi-alfred/favicons`,
-  misses are retried after a week.
-* Requests to the extension carry an `id`. Vicinae extension 1.2 drops
-  `focus-tab` and `close-tab` requests without one, which Raffi's host omits.
-* Page titles are untrusted input for Alfred UI's placeholder preprocessing, so
-  anything that looks like `{file:`/`{var:`… is defused with a zero-width space.
+### Live refresh
 
-No second extension, no WebSocket server, no extra dependencies: the binary
-depends on `serde`, `serde_json` and `libc` only.
+The host bumps a `generation` counter whenever the extension reports a
+change, and answers a `watch` request as soon as that counter moves. The UI's
+pulse runs `browvitab ui-watch <fingerprint> <query>`:
 
-## Performance
+1. List the hosts. If the tabs differ from what the UI shows, print one
+   update and exit.
+2. Otherwise send `watch` to every host and block. Wake up on the first
+   change, when a browser connects or quits, when the UI closes, or after
+   25 seconds, then exit. The pulse starts it again 100 ms later.
 
-Measured once on this machine (Apple Silicon, macOS 27, Alfred 6.0 b3219):
-the back end lists, orders and renders 9 real tabs in 0.2 ms and 513 tabs
-(Firefox plus two fake browsers) in 2.6 ms (294 KB of data, 12 MB peak RSS);
-a host uses 7–9 MB. Alfred logged 67 ms from *Initialising Alfred UI* to
-*did launch* with 513 tabs, preload included. The first opening after new sites
-appear spends up to ~120 ms on favicon lookups; later openings use the cache.
-`raffi-tabs bench 50` measures your setup.
+While the window is open, one process sits waiting on the browsers' own
+events; a change shows up in about 200 ms. Closing the window removes the
+watcher's pid file and the watcher exits within half a second. Nothing runs
+in the background apart from the hosts the browsers start themselves.
+
+Closing a tab from the list answers with fresh data and the next visible row
+selected (or the previous one at the bottom), so you can close several tabs
+in a row.
+
+## The host on macOS
+
+The host speaks the Vicinae extension's protocol: `browser/init`,
+`browser/tabs-changed`, `browser/focus-tab` and `browser/close-tab`. Clients
+send one JSON line per connection. Requests carry a monotonic deadline so a
+late request is dropped instead of acted on, and the host checks that the
+browser is reading before writing to it.
+
+Requests to the extension carry an `id`. Extension 1.2 silently drops focus
+and close requests without one.
+
+Sockets live in `/tmp/browvitab-<uid>/browsers/<pid>.sock`, in a directory
+only you can read. A socket is removed as stale only when its process is
+gone, because macOS also refuses connections from a live host whose backlog
+is full.
+
+The host recognises its browser from the parent process's `.app` bundle.
+Firefox and its forks run each profile as a separate process, so every
+profile gets its own host; the host finds its profile from the `.parentlock`
+file the browser keeps open and names it from `profiles.ini`. Chromium runs
+all profiles in one process and does not tell the host which one it serves,
+so Chromium rows show no profile.
+
+After the extension switches the tab and focuses its window, the back end
+brings that browser process to the front with `NSRunningApplication`, by pid,
+so the right Firefox instance wins when several are open.
+
+Site icons come from `favicons.sqlite` (Firefox) and `Favicons` (Chromium),
+read with `/usr/bin/sqlite3` in immutable mode so a locked database never
+blocks. Icons are cached in `~/Library/Caches/browvitab/favicons`, and sites
+without one are retried after a week. Nothing is downloaded.
+
+Page titles go through Alfred UI's placeholder processing, so anything that
+looks like `{file:` or `{var:` gets a zero-width space after the brace.
+
+The binary depends on `serde`, `serde_json` and `libc`.
+
+## Manifests
+
+| Browser | Directory under `~/Library/Application Support` |
+| --- | --- |
+| Firefox, Zen, Floorp, Waterfox, LibreWolf | `Mozilla/NativeMessagingHosts` |
+| LibreWolf | also `librewolf/NativeMessagingHosts` |
+| Chrome, Chrome Beta, Dev, Canary | `Google/Chrome*/NativeMessagingHosts` |
+| Brave | `BraveSoftware/Brave-Browser/NativeMessagingHosts` |
+| Chromium, Edge, Vivaldi, Arc, Thorium, Helium | `<browser>/NativeMessagingHosts` |
+
+Setup writes a manifest only for browsers whose directory exists, and copies
+the binary to `~/Library/Application Support/browvitab/bin/` so the manifests
+keep working if your Alfred preferences live in a synced folder that moves.
+
+A manifest Browvitab did not write (Vicinae's, a symbolic link, anything
+else) is left alone unless you pass `--force`, and uninstall only removes its
+own. New manifests are published with a hard link, so a manifest that
+appears in the meantime is never overwritten.
 
 ## Tests
 
 ```sh
-cargo test --release          # host protocol, watch, sockets, ordering, ranking,
-                              # manifests (Vicinae kept), favicons, macOS helpers
-python3 tests/fake_extension.py target/release/raffi-tabs --name Brave --count 300 &
-target/release/raffi-tabs list
+cargo test --release
 ```
 
-## Validation
+The tests cover the host protocol, watch and its cleanup when clients go
+away, sockets and stale-socket removal, ordering and ranking, manifest
+ownership (Vicinae and symbolic links kept), favicon lookups and the macOS
+helpers.
 
-Done on this machine with Alfred 6.0 (b3219), Firefox with the Vicinae
-extension 1.2.0, and two fake browsers from `tests/fake_extension.py`
-(driving the UI with synthetic key events and the UI log):
+`tests/fake_extension.py` starts the binary the way a browser does and plays
+the extension's side, with as many tabs as you like:
+
+```sh
+python3 tests/fake_extension.py target/release/browvitab --name Brave --count 300 &
+target/release/browvitab list
+```
+
+## Tested with
+
+Alfred 6.0 (build 3219) on macOS 27, Firefox with Vicinae extension 1.2.0,
+and fake browsers from the script above.
 
 | Check | Result |
 | --- | --- |
-| Opens from the external trigger; keyword and hotkey use the same object | ✅ trigger; keyword/hotkey wired, not driven |
-| Search field focused on open, typing filters via `filterdata` (no process per key) | ✅ |
-| ↑/↓, ⌘↑/⌘↓ through root `shortcuts` | ✅ |
-| ↩ (text field `actioned` → `finish` → Run Script) switches tab and raises Firefox from another app | ✅ |
-| ⌘↩ copies the URL with the `copy` JSON Action, browser untouched | ✅ |
-| ⌃↩ closes, keeps the UI open, selects the neighbour; repeated closes | ✅ (fake tabs) |
-| **⌥↩** | ❌ never reaches Alfred UI shortcuts: the search field consumes it (no key event logged), so close uses ⌃↩ like Raffi |
-| ⌘K `popupmenu` and choosing an item (Copy Title) | ✅ |
-| Live refresh while open (new tab, renamed tab), selection kept | ✅ ~200 ms |
-| Watcher gone after the UI closes | ✅ |
-| Firefox profile detected (`default-esr`), multiple instances labelled | ✅ detection; ✅ labels in unit tests; a second real profile was not started |
-| Several browsers at once | ✅ Firefox + 2 fake hosts |
-| Light / dark rendering | ⚠️ not seen: no screen-recording permission; only system and theme colours are used |
-| Vertical tabs | n/a: the extension reports tabs the same way; nothing to do |
+| Opens from the external trigger and the `alfred://runtrigger` link, with a search | Works |
+| Typing filters without starting a process | Works |
+| <kbd>↩</kbd> switches the tab and raises Firefox from another app | Works |
+| <kbd>⌘</kbd><kbd>↩</kbd> copies the URL without touching the browser | Works |
+| <kbd>⌃</kbd><kbd>↩</kbd> closes and selects the next row, repeatedly | Works |
+| <kbd>⌘</kbd><kbd>K</kbd> menu and its items | Works |
+| The list refreshes while open and keeps the selection | Works |
+| No watcher left after the window closes | Works |
+| Several browsers in one list | Works |
+| A second real Firefox profile | Not tried; labels are unit tested |
+| Light and dark mode | Not inspected visually |
 
-Closing the last row that matches the query made Alfred dismiss the UI in one
-run; closing with other matches left keeps it open.
+Closing the last row that matches the search made Alfred dismiss the window
+in one run.
 
-## Design notes and limits
+## Design choices
 
+The list has no section header rows. In a `dataview` a header would be a row
+that the arrow keys and <kbd>↩</kbd> land on, which would also break "press
+<kbd>↩</kbd> right away to go back to the previous tab". The order still
+groups pinned tabs and then each browser, and each row shows its browser.
 
-* **No section header rows.** The spec mock-up shows "PINNED / FIREFOX" headers.
-  In a `dataview` those would be selectable rows that ↑/↓ and ↩ land on, which
-  breaks the keyboard flow (and Raffi's "↩ right away switches back"). The order
-  is Raffi's grouped order; the group is visible from the pin badge and the
-  browser icon and label on each row instead.
-* **Script Filter caching is off.** Tabs change constantly and the back end
-  answers in milliseconds, so a cache could only show closed tabs.
-* The build targets the host architecture (Homebrew Rust has no cross targets);
-  build on Intel for Intel.
-* Only one tabs UI runs at a time (Alfred shows one window), so the watcher uses a
-  single pid file.
+The Script Filter does not cache. The tab list changes all the time and the
+back end answers in a few milliseconds, so a cache could only show tabs that
+are already closed.
+
+Alfred shows one window at a time, so a single pid file is enough for the
+watcher.

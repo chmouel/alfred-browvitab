@@ -229,7 +229,7 @@ mod tests {
 
     #[test]
     fn profile_names_come_from_profiles_ini() {
-        let root = std::env::temp_dir().join(format!("raffi-ini-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("browvitab-ini-{}", std::process::id()));
         let dir = root.join("Profiles").join("abcd.work");
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(

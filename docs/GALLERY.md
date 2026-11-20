@@ -14,9 +14,9 @@ Requirements are on the [submit page](https://alfred.app/submit/) and in the
 | Shared on the forum | To do: post the draft below |
 | README follows the style guide (`## Setup`, `## Usage`, kbd modifiers, screenshot) | Done: `workflow/README.alfred.md` |
 | Keywords of three characters or more, user-configurable | Done: `tabs`, `tabl`, `tabs:setup` in Workflow Configuration |
-| Icon at least 256×256 px | Done, though a purpose-made icon would look better than the padded Raffi logo |
+| Icon at least 256×256 px | Done: 512×512, drawn by `scripts/icon.swift` |
 | No auto-updater | Done |
-| Never downloads or installs extra software | Done: the helper ships inside the workflow; `tabs:setup` copies that same file to `~/Library/Application Support/raffi-alfred` so browser manifests survive synced preferences moving |
+| Never downloads or installs extra software | Done: the helper ships inside the workflow; `tabs:setup` copies that same file to `~/Library/Application Support/browvitab` so browser manifests survive synced preferences moving |
 | No Gatekeeper workarounds such as removing quarantine | Done: `install.sh` no longer strips quarantine |
 | Compiled binaries signed and notarised | **Missing.** Needs a *Developer ID Application* certificate. This Mac only has an *Apple Development* identity, which cannot be notarised for distribution |
 
@@ -40,8 +40,7 @@ helper.
 Title: **Browvitab: switch, copy and close Firefox, Chrome and Brave tabs from one Alfred 6 window**
 
 > I wanted one tab switcher for Firefox and the Chromium browsers I keep open
-> side by side, so I ported the browser integration from my Linux launcher,
-> Raffi, to Alfred 6.
+> side by side, so I wrote one for Alfred 6.
 >
 > Browvitab uses the new Alfred UI: a native window where typing filters
 > instantly, <kbd>↩</kbd> jumps to the tab in the right window (separate

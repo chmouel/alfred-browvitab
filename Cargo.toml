@@ -1,8 +1,8 @@
 [package]
-name = "raffi-tabs"
+name = "browvitab"
 version = "0.1.0"
 edition = "2021"
-description = "Browser tab switcher for Alfred 6, built on Raffi's Vicinae native messaging host"
+description = "Browser tab switcher for Alfred 6 using the Vicinae browser extension"
 license = "MIT"
 
 [dependencies]

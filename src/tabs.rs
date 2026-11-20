@@ -1,5 +1,4 @@
-//! Tab ordering and ranking, ported from Raffi's
-//! `src/ui/wayland/browser_tabs.rs` (`tab_items_with`, by-browser view).
+//! Tab ordering and ranking.
 //!
 //! Without a query: pinned tabs of every browser first, then one section
 //! per browser instance, the one used last on top. Within each list tabs
@@ -7,7 +6,7 @@
 //! user is looking at goes last, so the previous tab is the first row.
 //!
 //! With a query the Alfred UI filters natively; `rank` only reorders so the
-//! best matches lead, the way Raffi drops the sections when searching.
+//! best matches lead and the sections no longer apply.
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -71,7 +70,7 @@ pub fn display_host(host: &str) -> &str {
 
 type Row<'a> = (&'a Connected, &'a Tab);
 
-/// Order the tabs of `browsers` the Raffi way.
+/// Order the tabs of `browsers` as described in the module docs.
 pub fn order(browsers: &[Connected]) -> Vec<TabView> {
     let mut pinned: Vec<Row> = Vec::new();
     let mut sections: Vec<Vec<Row>> = Vec::new();
@@ -266,8 +265,7 @@ fn word_score(tab: &TabView, title: &str, url: &str, word: &str) -> u32 {
     }
 }
 
-/// Reorder `tabs` for `query`: best matches first, ties kept in Raffi's
-/// recency order. A pasted URL puts the tabs of that site first.
+/// Reorder `tabs` for `query`: best matches first, ties kept in recency order. A pasted URL puts the tabs of that site first.
 pub fn rank(tabs: Vec<TabView>, query: &str) -> Vec<TabView> {
     let query = query.trim().to_lowercase();
     if query.is_empty() {

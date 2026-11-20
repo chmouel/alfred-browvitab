@@ -28,9 +28,9 @@ jobs:
           cargo build --release --target aarch64-apple-darwin
           cargo build --release --target x86_64-apple-darwin
           mkdir -p build
-          lipo -create -output build/raffi-tabs \
-            target/aarch64-apple-darwin/release/raffi-tabs \
-            target/x86_64-apple-darwin/release/raffi-tabs
+          lipo -create -output build/browvitab \
+            target/aarch64-apple-darwin/release/browvitab \
+            target/x86_64-apple-darwin/release/browvitab
       - name: Sign and notarise
         if: env.MACOS_CERTIFICATE != ''
         run: |
@@ -40,13 +40,13 @@ jobs:
           security unlock-keychain -p ci build.keychain
           security import cert.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k ci build.keychain
-          codesign --force --options runtime --timestamp --sign "$MACOS_SIGNING_IDENTITY" build/raffi-tabs
-          ditto -c -k build/raffi-tabs build/raffi-tabs.zip
-          xcrun notarytool submit build/raffi-tabs.zip --apple-id "$APPLE_ID" \
+          codesign --force --options runtime --timestamp --sign "$MACOS_SIGNING_IDENTITY" build/browvitab
+          ditto -c -k build/browvitab build/browvitab.zip
+          xcrun notarytool submit build/browvitab.zip --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
       - name: Package the workflow
         env:
-          BROWVITAB_BINARY: build/raffi-tabs
+          BROWVITAB_BINARY: build/browvitab
         run: BROWVITAB_VERSION="${GITHUB_REF_NAME#v}" python3 scripts/build.py
       - name: Publish the release
         env:
