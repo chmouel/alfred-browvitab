@@ -1,0 +1,31 @@
+#!/bin/sh
+# Run Browvitab with the first Python 3 found. Browsers and Alfred start this
+# with a minimal PATH, so look in the usual places directly.
+here=$(cd "$(dirname "$0")/.." && pwd)
+for py in "$BROWVITAB_PYTHON" /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
+  [ -n "$py" ] && [ -x "$py" ] || continue
+  # /usr/bin/python3 is only a stub until the Command Line Tools are installed.
+  if [ "$py" = /usr/bin/python3 ] && ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
+    continue
+  fi
+  exec "$py" -I "$here/lib/run.py" "$@"
+done
+
+# No Python: explain it wherever this was called from.
+msg="Browvitab needs Python 3. Install the Xcode Command Line Tools, or run: brew install python"
+case "$1" in
+filter)
+  printf '{"items":[{"title":"Install Python 3","subtitle":"%s","arg":"python","variables":{"tabaction":"setup"}}]}\n' "$msg"
+  ;;
+setup-action | ui-enter | ui-setup-action)
+  /usr/bin/xcode-select --install >/dev/null 2>&1
+  printf '{"update":{"ids":{"status":{"text":"Follow the installer, then open Browvitab again"}}}}\n'
+  ;;
+ui-*)
+  printf '{"variables":{"setupmode":"1"},"update":{"ids":{"tabs":{"hidden":true},"setuppanel":{"hidden":false},"status":{"text":""},"setup":{"data":{"type":"basic","src":[{"uid":"python","sicon.image":{"type":"symbol","src":"exclamationmark.triangle.fill"},"sicon.contenttintcolour":"systemOrangeColor","stitle.text":"Python 3 is missing","sdetail.text":"%s","action":"python","takeover":"","sact.hidden":false,"sact.text":"Install Tools"}]}}}}}\n' "$msg"
+  ;;
+*)
+  echo "browvitab: $msg" >&2
+  exit 1
+  ;;
+esac

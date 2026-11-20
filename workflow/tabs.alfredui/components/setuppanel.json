@@ -1,0 +1,173 @@
+{
+  "id": "setuppanel",
+  "type": "view",
+  "layout": "border",
+  "hidden": true,
+  "padding": 12,
+  "spacing": 10,
+  "components": [
+    {
+      "constraints": {
+        "region": "top"
+      },
+      "type": "view",
+      "layout": "inline",
+      "direction": "vertical",
+      "spacing": 3,
+      "components": [
+        {
+          "type": "label",
+          "text": "Set up Browvitab",
+          "font": {
+            "size": 15,
+            "weight": "semibold"
+          }
+        },
+        {
+          "type": "label",
+          "text": "Browvitab gets your tabs through the free Vicinae browser extension. Press ↩ for the next step.",
+          "colour": "secondaryLabelColor",
+          "font": {
+            "size": 12
+          },
+          "linebreak": "wordwrap"
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "region": "centre"
+      },
+      "id": "setup",
+      "type": "dataview",
+      "spacing": 2,
+      "data": {
+        "type": "basic",
+        "src": []
+      },
+      "cell": {
+        "height": 52,
+        "init": {
+          "sact.hidden": true,
+          "stakeover.hidden": true
+        },
+        "root": {
+          "type": "view",
+          "layout": "border",
+          "padding": 8,
+          "spacing": 12,
+          "components": [
+            {
+              "constraints": {
+                "region": "left",
+                "position": "centre",
+                "size": {
+                  "width": 20,
+                  "height": 20
+                }
+              },
+              "id": "sicon",
+              "type": "imageview",
+              "resize": "fit"
+            },
+            {
+              "constraints": {
+                "region": "centre",
+                "position": "left",
+                "stretch": "horizontal"
+              },
+              "type": "view",
+              "layout": "inline",
+              "direction": "vertical",
+              "spacing": 2,
+              "components": [
+                {
+                  "id": "stitle",
+                  "type": "label",
+                  "font": {
+                    "size": 14
+                  }
+                },
+                {
+                  "id": "sdetail",
+                  "type": "label",
+                  "colour": "secondaryLabelColor",
+                  "font": {
+                    "size": 11
+                  },
+                  "linebreak": "truncatetail"
+                }
+              ]
+            },
+            {
+              "constraints": {
+                "region": "right",
+                "position": "centre"
+              },
+              "type": "view",
+              "layout": "inline",
+              "spacing": 6,
+              "components": [
+                {
+                  "id": "sact",
+                  "type": "button",
+                  "text": "Connect",
+                  "hidden": true,
+                  "effect": "{var:button_effect}",
+                  "font": {
+                    "size": 12
+                  },
+                  "events": [
+                    {
+                      "triggers": "actioned",
+                      "action": {
+                        "type": "script",
+                        "async": true,
+                        "src": "bin/browvitab",
+                        "args": [
+                          "ui-setup-action",
+                          "{data:action}",
+                          "{var:setupforced}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "stakeover",
+                  "type": "button",
+                  "text": "Use Browvitab",
+                  "hidden": true,
+                  "effect": "{var:button_effect}",
+                  "font": {
+                    "size": 12
+                  },
+                  "events": [
+                    {
+                      "triggers": "actioned",
+                      "action": {
+                        "type": "script",
+                        "async": true,
+                        "src": "bin/browvitab",
+                        "args": [
+                          "ui-setup-action",
+                          "{data:takeover}",
+                          "{var:setupforced}"
+                        ]
+                      },
+                      "confirm": {
+                        "message": "Send this browser's tabs to Browvitab?",
+                        "informativetext": "Vicinae stops receiving its tabs until Vicinae sets itself up again.",
+                        "confirmbuttontext": "Use Browvitab"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

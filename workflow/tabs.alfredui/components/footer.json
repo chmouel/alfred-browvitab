@@ -97,32 +97,6 @@
       "font": {
         "size": 11
       }
-    },
-    {
-      "constraints": {
-        "region": "right",
-        "position": "centre"
-      },
-      "id": "setup",
-      "type": "button",
-      "hidden": true,
-      "text": "Set Up Browsers…",
-      "effect": "{var:button_effect}",
-      "font": {
-        "size": 11
-      },
-      "tooltip": "Register the native messaging host with your browsers",
-      "events": [
-        {
-          "triggers": "actioned",
-          "action": {
-            "type": "script",
-            "async": true,
-            "src": "bin/browvitab",
-            "args": "ui-setup"
-          }
-        }
-      ]
     }
   ]
 }

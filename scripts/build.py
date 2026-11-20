@@ -7,16 +7,17 @@ object graph is reviewable and reproducible.
 
 import os
 import plistlib
-import shutil
-import subprocess
-import sys
+import re
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WF = os.path.join(ROOT, "workflow")
 DIST = os.path.join(ROOT, "dist")
 BIN = "./tabs.alfredui/bin/browvitab"
-VERSION = os.environ.get("BROWVITAB_VERSION", "0.1.0")
+VERSION = re.search(
+    r'__version__ = "([^"]+)"',
+    open(os.path.join(WF, "tabs.alfredui", "lib", "browvitab", "__init__.py")).read(),
+).group(1)
 BUNDLE_ID = "com.chmouel.alfred-browvitab"
 
 CMD = 1048576
@@ -96,9 +97,12 @@ OBJECTS = [
         "type": "alfred.workflow.action.script",
         "version": 2,
         "config": script(
-            '# Only the "Switch" path focuses; copy/close finish with other values.\n'
-            '[ "${tabaction:-focus}" = focus ] && [ -n "$1" ] || exit 0\n'
-            f'exec {BIN} focus "$1"\n'
+            "# Copying finishes the window with tabaction=copied: nothing to do here.\n"
+            '[ -n "$1" ] || exit 0\n'
+            'case "${tabaction:-focus}" in\n'
+            f'  focus) exec {BIN} focus "$1" ;;\n'
+            f'  setup) exec {BIN} setup-action "$1" ;;\n'
+            "esac\n"
         ),
     },
     {
@@ -150,21 +154,17 @@ OBJECTS = [
         "version": 1,
         "config": {
             "keyword": "{var:ui_keyword}:setup",
-            "text": "Set up browser tabs",
-            "subtext": "Register the native messaging host with installed browsers",
+            "text": "Set up Browvitab",
+            "subtext": "Connect your browsers and check each step",
             "argumenttype": 2,
             "withspace": False,
         },
     },
     {
         "uid": U["setup"],
-        "type": "alfred.workflow.action.script",
-        "version": 2,
-        "config": script(
-            f'out=$({BIN} install 2>&1)\n'
-            'case "$out" in *"left alone"*) echo "Some manifests belong to another host (Vicinae?). Run install.sh --force to replace them.";;\n'
-            '  *) echo "Host registered. The extension reconnects within a minute.";; esac\n'
-        ),
+        "type": "alfred.workflow.utility.argument",
+        "version": 1,
+        "config": {"argument": "", "passthroughargument": False, "variables": {"setupforced": "1"}},
     },
     {
         "uid": U["notify"],
@@ -192,7 +192,8 @@ CONNECTIONS = {
     U["ui"]: [conn(U["focus"])],
     U["filter"]: [conn(U["focus"]), conn(U["copy"], CMD), conn(U["close"], CTRL)],
     U["setup_kw"]: [conn(U["setup"])],
-    U["setup"]: [conn(U["notify"])],
+    U["setup"]: [conn(U["ui"])],
+    U["focus"]: [conn(U["notify"])],
 }
 
 UIDATA = {
@@ -205,8 +206,8 @@ UIDATA = {
     U["copy"]: {"xpos": 480, "ypos": 300},
     U["close"]: {"xpos": 480, "ypos": 420},
     U["setup_kw"]: {"xpos": 40, "ypos": 520},
-    U["setup"]: {"xpos": 260, "ypos": 520},
-    U["notify"]: {"xpos": 480, "ypos": 540},
+    U["setup"]: {"xpos": 170, "ypos": 545},
+    U["notify"]: {"xpos": 700, "ypos": 100},
 }
 
 USER_CONFIG = [
@@ -255,27 +256,16 @@ def info_plist():
     }
 
 
-def build_binary():
-    # CI passes a universal (and possibly signed) binary through BROWVITAB_BINARY.
-    binary = os.environ.get("BROWVITAB_BINARY")
-    if not binary:
-        subprocess.run(["cargo", "build", "--release"], cwd=ROOT, check=True)
-        binary = os.path.join(ROOT, "target", "release", "browvitab")
-    dest = os.path.join(WF, "tabs.alfredui", "bin", "browvitab")
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    shutil.copy2(binary, dest)
-    os.chmod(dest, 0o755)
-
-
 def package():
     os.makedirs(DIST, exist_ok=True)
     out = os.path.join(DIST, "Browvitab.alfredworkflow")
     if os.path.exists(out):
         os.remove(out)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        for base, _, files in os.walk(WF):
+        for base, dirs, files in os.walk(WF):
+            dirs[:] = [d for d in dirs if d != "__pycache__"]
             for name in sorted(files):
-                if name in (".DS_Store", "README.alfred.md"):
+                if name in (".DS_Store", "README.alfred.md") or name.endswith(".pyc"):
                     continue
                 path = os.path.join(base, name)
                 rel = os.path.relpath(path, WF)
@@ -286,8 +276,6 @@ def package():
 
 
 def main():
-    if "--no-cargo" not in sys.argv:
-        build_binary()
     with open(os.path.join(WF, "info.plist"), "wb") as f:
         plistlib.dump(info_plist(), f)
     print(package())

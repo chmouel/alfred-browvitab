@@ -6,7 +6,7 @@ speaks the extension side of the protocol: browser/init, then
 browser/tabs-changed, and it honours focus-tab / close-tab like the real
 extension (closing re-sends the list).
 
-    fake_extension.py BIN [--engine firefox|chrome] [--name Firefox]
+    fake_extension.py [BIN] [--engine firefox|chrome] [--name Firefox]
                           [--count 50] [--pinned 2] [--seed 1]
 
 Signals: SIGUSR1 adds a tab, SIGUSR2 renames the first tab.
@@ -23,6 +23,7 @@ import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 
 SITES = [
     ("GitHub – Pull Requests", "https://github.com/pulls"),
@@ -40,7 +41,9 @@ SITES = [
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("bin")
+    ap.add_argument(
+        "bin", nargs="?", default=str(Path(__file__).resolve().parents[1] / "workflow/tabs.alfredui/bin/browvitab")
+    )
     ap.add_argument("--engine", default="firefox")
     ap.add_argument("--name", default="Firefox")
     ap.add_argument("--count", type=int, default=50)
@@ -54,17 +57,19 @@ def main():
     tabs = []
     for i in range(a.count):
         title, url = SITES[i % len(SITES)]
-        tabs.append({
-            "id": a.id_base + i,
-            "title": f"{title} #{i}",
-            "url": f"{url}?n={i}",
-            "windowId": 1 + i % 3,
-            "active": i == 0,
-            "audible": i == 5,
-            "muted": i == 6,
-            "lastAccessed": now - rnd.randint(0, 86_400_000) if i else now,
-            "pinned": i < a.pinned,
-        })
+        tabs.append(
+            {
+                "id": a.id_base + i,
+                "title": f"{title} #{i}",
+                "url": f"{url}?n={i}",
+                "windowId": 1 + i % 3,
+                "active": i == 0,
+                "audible": i == 5,
+                "muted": i == 6,
+                "lastAccessed": now - rnd.randint(0, 86_400_000) if i else now,
+                "pinned": i < a.pinned,
+            }
+        )
     if a.engine == "chrome":
         argv = [a.bin, "chrome-extension://kcmipingpfbohfjckomimmahknoddnke/"]
     else:
@@ -115,9 +120,19 @@ def main():
 
     def add(*_):
         n = max([t["id"] for t in tabs] + [a.id_base]) + 1
-        tabs.append({"id": n, "title": f"New tab {n}", "url": f"https://example.org/new/{n}",
-                     "windowId": 1, "active": False, "audible": False, "muted": False,
-                     "lastAccessed": time.time() * 1000, "pinned": False})
+        tabs.append(
+            {
+                "id": n,
+                "title": f"New tab {n}",
+                "url": f"https://example.org/new/{n}",
+                "windowId": 1,
+                "active": False,
+                "audible": False,
+                "muted": False,
+                "lastAccessed": time.time() * 1000,
+                "pinned": False,
+            }
+        )
         send_tabs()
 
     def rename(*_):

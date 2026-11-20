@@ -6,20 +6,28 @@ on:
   pull_request:
 
 jobs:
-  test:
-    runs-on: macos-latest
+  lint:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: astral-sh/ruff-action@v3
+      - run: ruff format --check
+
+  test:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test --release
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s tests -v
       - name: Package the workflow
-        run: python3 scripts/build.py
+        run: python scripts/build.py
       - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.13'
         with:
           name: Browvitab.alfredworkflow
           path: dist/Browvitab.alfredworkflow

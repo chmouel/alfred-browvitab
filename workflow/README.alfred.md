@@ -1,10 +1,10 @@
 ## Setup
 
-Install the Vicinae browser extension in [Firefox](https://addons.mozilla.org/firefox/addon/vicinae/) or in [Chrome, Brave and other Chromium browsers](https://chromewebstore.google.com/detail/vicinae-integration/kcmipingpfbohfjckomimmahknoddnke), then connect it via the `tabs:setup` keyword. The extension picks up the connection within a minute.
+Open the workflow via the `tabs` keyword. A checklist guides you through adding the [Vicinae browser extension](https://docs.vicinae.com/browser-extension) and connecting your browsers; press <kbd>↩</kbd> for the next step. Run `tabs:setup` to see it again.
 
 ## Usage
 
-Search the tabs of every connected browser via the `tabs` keyword.
+Search the tabs of Firefox, Chrome, Brave and other Chromium browsers via the `tabs` keyword.
 
 ![Searching browser tabs](images/screenshot.png)
 

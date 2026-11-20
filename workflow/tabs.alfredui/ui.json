@@ -18,6 +18,16 @@
     "button_effect": {
       "src": "variable",
       "default": "default"
+    },
+    "instance": {
+      "default": ""
+    },
+    "setupforced": {
+      "src": "variable",
+      "default": ""
+    },
+    "setupmode": {
+      "default": ""
     }
   },
   "templates": {
@@ -44,7 +54,9 @@
     "args": [
       "ui-watch",
       "{var:fingerprint}",
-      "{var:query}"
+      "{var:query}",
+      "{var:instance}",
+      "{var:setupforced}"
     ],
     "intervalmode": "delay",
     "interval": 0.1
@@ -69,7 +81,8 @@
             "src": "bin/browvitab",
             "args": [
               "ui-load",
-              "{var:query}"
+              "{var:query}",
+              "{var:setupforced}"
             ]
           }
         },
@@ -78,7 +91,10 @@
           "action": {
             "type": "script",
             "src": "bin/browvitab",
-            "args": "ui-quit"
+            "args": [
+              "ui-quit",
+              "{var:instance}"
+            ]
           }
         }
       ],
@@ -172,7 +188,17 @@
       ],
       "components": [
         "{file:components/searchbar.json}",
-        "{file:components/tablist.json}",
+        {
+          "constraints": {
+            "region": "centre"
+          },
+          "type": "view",
+          "layout": "stack",
+          "components": [
+            "{file:components/tablist.json}",
+            "{file:components/setuppanel.json}"
+          ]
+        },
         "{file:components/footer.json}"
       ]
     }

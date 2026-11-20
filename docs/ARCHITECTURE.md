@@ -8,30 +8,40 @@ native Alfred UI, and sends focus or close requests back.
 
 | Path | What it holds |
 | --- | --- |
-| `src/host.rs` | The native messaging host and the socket client |
-| `src/tabs.rs` | Tab ordering and search ranking |
-| `src/alfred.rs` | Data for the Alfred UI and JSON for the Script Filter |
-| `src/favicons.rs` | Site icons read from the browsers' own favicon databases |
-| `src/install.rs` | Native messaging manifest registration |
-| `src/macos.rs` | Process lookups and per-process app activation |
+| `workflow/tabs.alfredui/bin/browvitab` | Shell launcher that finds Python 3 |
+| `workflow/tabs.alfredui/lib/browvitab/host.py` | The native messaging host and the socket client |
+| `…/tabs.py` | Tab ordering and search ranking |
+| `…/alfred.py` | Data for the Alfred UI and JSON for the Script Filter |
+| `…/favicons.py` | Site icons read from the browsers' own favicon databases |
+| `…/browsers.py` | The supported browsers: ids, profile folders, apps, manifest folders |
+| `…/install.py` | Native messaging manifest registration |
+| `…/setup.py` | The setup checklist |
+| `…/macos.py` | Process lookups and per-process app activation (ctypes) |
+| `…/cli.py` | Commands for the workflow and for you |
 | `workflow/tabs.alfredui/` | The Alfred UI package |
-| `scripts/build.py` | Builds the binary, writes `info.plist`, packages the workflow |
+| `scripts/build.py` | Writes `info.plist` and packages the workflow |
 | `scripts/icon.swift` | Draws the workflow icon |
 | `tests/fake_extension.py` | A stand-in for the browser extension, used in tests |
 
-One binary, `browvitab`, plays both parts. When a browser starts it with the
-native messaging arguments it runs as a host; otherwise it is the command-line
-back end for the workflow (`browvitab --help`).
+One program, `browvitab`, plays both parts. When a browser starts it with
+the native messaging arguments it runs as a host; otherwise it is the
+command-line back end for the workflow (`browvitab --help`). It is Python 3.9+
+with only the standard library. A small shell launcher finds `python3` in
+Homebrew or the Command Line Tools, because browsers and Alfred start it with a
+bare `PATH`, and runs it isolated from your Python environment (`-I`).
 
 ## The Alfred UI
 
 The keyword, the hotkey and the external trigger all open `tabs.alfredui`
-inside Alfred, with stacking on so <kbd>⎋</kbd> returns to Alfred. When you
-pick a tab, the UI's `finish` action hands the tab id to a Run Script object
-that switches to it.
+inside Alfred, with stacking on so <kbd>⎋</kbd> returns to Alfred.
+<kbd>↩</kbd> runs `ui-enter`, which answers with a `finish` action carrying the
+tab id; a Run Script object then switches to the tab. The `tabs:setup`
+keyword opens the same window through an Arg and Vars object that sets
+`setupforced`, which keeps the checklist up even when browsers are connected.
 
-The window is a border layout: search field on top, a `dataview` in the
-middle and a footer of buttons. Each row is a border layout too, with the
+The window is a border layout: search field on top, a stack of two views in
+the middle (the tab `dataview` and the setup panel, one hidden at a time) and
+a footer of buttons. Each row is a border layout too, with the
 favicon on the left, title and site in the middle, and the pin, sound and
 browser icons on the right. The badge and the shared actions are reused
 through a template and `{file:}` includes.
@@ -48,9 +58,28 @@ Every row has a uid of the form `<host pid>:<tab id>`. Data refreshes pass
 `select` with the current selection, read through `{value:tabs.selected.uid}`
 when the update is applied, so a refresh never moves you.
 
-Copying, finishing, menus and selection changes are JSON Actions and run
-inside Alfred. Only closing a tab, ranking and setup run the binary, and
-those run asynchronously.
+Copying, menus and selection changes are JSON Actions and run inside Alfred.
+<kbd>↩</kbd>, closing a tab, ranking and setup steps run Python; all but
+<kbd>↩</kbd> run asynchronously.
+
+### Setup checklist
+
+While no browser is connected, or after `tabs:setup`, the window shows the
+checklist from `setup.py` instead of tabs. For each browser that is installed
+and has a profile folder it reports one state: connected, extension missing
+(Firefox's `extensions.json` or Chrome's `Extensions/<id>` folder), owned by
+Vicinae or another program, not connected yet, or waiting for the extension.
+Each state carries the action its button runs; <kbd>↩</kbd> runs "connect"
+when it is pending, otherwise the first remaining step. Taking a browser over
+from Vicinae goes through the button's built-in confirmation dialog.
+
+The watcher below also re-checks the checklist every two seconds while it is
+shown, so installing the extension or connecting ticks the row off without
+reopening the window. The first time tabs appear, the footer shows a one-off
+tip about <kbd>⌃</kbd><kbd>↩</kbd> and <kbd>⌘</kbd><kbd>K</kbd>.
+
+Without Python, the shell launcher answers the window itself with a single
+checklist row whose button runs `xcode-select --install`.
 
 The UI uses only system colours and Alfred's theme colours
 (`alfredSelectedResultBackgroundColor` and friends), so it follows light and
@@ -77,8 +106,9 @@ pulse runs `browvitab ui-watch <fingerprint> <query>`:
    25 seconds, then exit. The pulse starts it again 100 ms later.
 
 While the window is open, one process sits waiting on the browsers' own
-events; a change shows up in about 200 ms. Closing the window removes the
-watcher's pid file and the watcher exits within half a second. Nothing runs
+events; a change shows up in about 200 ms. Each window gets its own watcher
+pid file, since stacked windows each run one; closing a window removes its
+file and that watcher exits within half a second. Nothing runs
 in the background apart from the hosts the browsers start themselves.
 
 Closing a tab from the list answers with fresh data and the next visible row
@@ -113,14 +143,16 @@ brings that browser process to the front with `NSRunningApplication`, by pid,
 so the right Firefox instance wins when several are open.
 
 Site icons come from `favicons.sqlite` (Firefox) and `Favicons` (Chromium),
-read with `/usr/bin/sqlite3` in immutable mode so a locked database never
+read with Python's `sqlite3` in immutable mode so a locked database never
 blocks. Icons are cached in `~/Library/Caches/browvitab/favicons`, and sites
 without one are retried after a week. Nothing is downloaded.
 
 Page titles go through Alfred UI's placeholder processing, so anything that
 looks like `{file:` or `{var:` gets a zero-width space after the brace.
 
-The binary depends on `serde`, `serde_json` and `libc`.
+Everything uses the Python standard library: `socket`, `threading`, `sqlite3`,
+and `ctypes` for libproc and `NSRunningApplication`. Each call starts Python,
+about 50 to 70 ms; typing never does.
 
 ## Manifests
 
@@ -133,8 +165,11 @@ The binary depends on `serde`, `serde_json` and `libc`.
 | Chromium, Edge, Vivaldi, Arc, Thorium, Helium | `<browser>/NativeMessagingHosts` |
 
 Setup writes a manifest only for browsers whose directory exists, and copies
-the binary to `~/Library/Application Support/browvitab/bin/` so the manifests
-keep working if your Alfred preferences live in a synced folder that moves.
+the launcher and the Python package to `~/Library/Application Support/browvitab/`,
+so the manifests keep working if your Alfred preferences live in a synced
+folder that moves. When the workflow updates, the next time the window opens
+it refreshes that copy if the version changed; running hosts pick it up when
+the browser or the extension restarts.
 
 A manifest Browvitab did not write (Vicinae's, a symbolic link, anything
 else) is left alone unless you pass `--force`, and uninstall only removes its
@@ -144,26 +179,28 @@ appears in the meantime is never overwritten.
 ## Tests
 
 ```sh
-cargo test --release
+python3 -m unittest discover -s tests
+ruff check && ruff format --check
 ```
 
 The tests cover the host protocol, watch and its cleanup when clients go
 away, sockets and stale-socket removal, ordering and ranking, manifest
-ownership (Vicinae and symbolic links kept), favicon lookups and the macOS
-helpers.
+ownership (Vicinae and symbolic links kept), the setup checklist, favicon
+lookups and the macOS helpers. CI runs them on Python 3.9 and 3.13.
 
-`tests/fake_extension.py` starts the binary the way a browser does and plays
+`tests/fake_extension.py` starts Browvitab the way a browser does and plays
 the extension's side, with as many tabs as you like:
 
 ```sh
-python3 tests/fake_extension.py target/release/browvitab --name Brave --count 300 &
-target/release/browvitab list
+python3 tests/fake_extension.py --name Brave --count 300 &
+workflow/tabs.alfredui/bin/browvitab list
 ```
 
 ## Tested with
 
-Alfred 6.0 (build 3219) on macOS 27, Firefox with Vicinae extension 1.2.0,
-and fake browsers from the script above.
+Alfred 6.0 (build 3219) on macOS 27 with Python 3.15, Firefox with Vicinae
+extension 1.2.0, and fake browsers from the script above. The tests also pass
+on Python 3.9.
 
 | Check | Result |
 | --- | --- |
@@ -174,7 +211,9 @@ and fake browsers from the script above.
 | <kbd>⌃</kbd><kbd>↩</kbd> closes and selects the next row, repeatedly | Works |
 | <kbd>⌘</kbd><kbd>K</kbd> menu and its items | Works |
 | The list refreshes while open and keeps the selection | Works |
-| No watcher left after the window closes | Works |
+| No watcher left after the window closes, also with stacked windows | Works |
+| `tabs:setup` opens the checklist | Works |
+| Checklist buttons and ↩ in the checklist | Checked through the command line only |
 | Several browsers in one list | Works |
 | A second real Firefox profile | Not tried; labels are unit tested |
 | Light and dark mode | Not inspected visually |
@@ -192,6 +231,3 @@ groups pinned tabs and then each browser, and each row shows its browser.
 The Script Filter does not cache. The tab list changes all the time and the
 back end answers in a few milliseconds, so a cache could only show tabs that
 are already closed.
-
-Alfred shows one window at a time, so a single pid file is enough for the
-watcher.

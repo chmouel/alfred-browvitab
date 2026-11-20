@@ -1,9 +1,9 @@
 #!/bin/bash
 # Install Browvitab for Alfred 6.
 #
-#   ./install.sh            build if needed, import the workflow, register the host
-#   ./install.sh --force    also replace manifests owned by Vicinae or others
-#   ./install.sh --no-import  only register the native messaging host
+#   ./install.sh              connect the browsers and import the workflow
+#   ./install.sh --force      also replace manifests owned by Vicinae or others
+#   ./install.sh --no-import  only connect the browsers
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -24,20 +24,12 @@ for arg in "$@"; do
   esac
 done
 
-WORKFLOW=dist/Browvitab.alfredworkflow
 BIN=workflow/tabs.alfredui/bin/browvitab
 
-if [[ ! -x $BIN || ! -f $WORKFLOW ]]; then
-  if command -v cargo >/dev/null; then
-    echo "==> Building"
-    python3 scripts/build.py >/dev/null
-  else
-    echo "No prebuilt binary and no cargo; install Rust (brew install rust) first." >&2
-    exit 1
-  fi
-fi
+echo "==> Packaging the workflow"
+python3 scripts/build.py >/dev/null
 
-echo "==> Registering the native messaging host"
+echo "==> Connecting the browsers"
 out=$("$BIN" install $FORCE)
 echo "$out"
 if [[ -z $FORCE ]] && grep -q "left alone" <<<"$out"; then
@@ -51,10 +43,10 @@ fi
 
 if [[ $IMPORT == 1 ]]; then
   echo "==> Importing the workflow into Alfred"
-  open "$WORKFLOW"
+  open dist/Browvitab.alfredworkflow
 fi
 
-cat <<'EOF'
+cat <<'EOF2'
 
 Next:
   1. Install the Vicinae extension if needed:
@@ -62,4 +54,4 @@ Next:
      Chrome/Brave: https://chromewebstore.google.com/detail/vicinae-integration/kcmipingpfbohfjckomimmahknoddnke
   2. The extension reconnects within a minute (or toggle it off and on).
   3. Type "tabs" in Alfred, or press ⌥⌘T.
-EOF
+EOF2

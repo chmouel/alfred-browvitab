@@ -1,11 +1,14 @@
 {
-  "constraints": { "region": "centre" },
   "id": "tabs",
   "type": "dataview",
   "padding": 6,
   "spacing": 0,
   "placeholder": "Loading tabs…",
-  "behaviour": { "selection": { "wrap": "none" } },
+  "behaviour": {
+    "selection": {
+      "wrap": "none"
+    }
+  },
   "data": {
     "type": "basic",
     "src": [],
@@ -45,19 +48,40 @@
       "events": [
         {
           "triggers": "doubleclicked",
-          "action": { "type": "json", "src": { "finish": { "args": "{data:uid}", "variables": { "tabaction": "focus" } } } }
+          "action": {
+            "type": "json",
+            "src": {
+              "finish": {
+                "args": "{data:uid}",
+                "variables": {
+                  "tabaction": "focus"
+                }
+              }
+            }
+          }
         }
       ],
       "components": [
         {
-          "constraints": { "region": "left", "position": "centre", "size": { "width": 20, "height": 20 } },
+          "constraints": {
+            "region": "left",
+            "position": "centre",
+            "size": {
+              "width": 20,
+              "height": 20
+            }
+          },
           "id": "favicon",
           "type": "imageview",
           "resize": "fit",
           "cornerradius": 3
         },
         {
-          "constraints": { "region": "centre", "position": "left", "stretch": "horizontal" },
+          "constraints": {
+            "region": "centre",
+            "position": "left",
+            "stretch": "horizontal"
+          },
           "type": "view",
           "layout": "inline",
           "direction": "vertical",
@@ -67,26 +91,55 @@
               "id": "title",
               "type": "label",
               "linebreak": "truncatetail",
-              "font": { "size": 14 }
+              "font": {
+                "size": 14
+              }
             },
             {
               "id": "subtitle",
               "type": "label",
               "linebreak": "truncatemiddle",
-              "font": { "size": 11 }
+              "font": {
+                "size": 11
+              }
             }
           ]
         },
         {
-          "constraints": { "region": "right", "position": "centre" },
+          "constraints": {
+            "region": "right",
+            "position": "centre"
+          },
           "type": "view",
           "layout": "inline",
           "spacing": 6,
           "components": [
-            { "type": "template", "src": "badge", "id": "pin", "params": { "symbol": "pin.fill", "tooltip": "Pinned" } },
-            { "type": "template", "src": "badge", "id": "sound", "params": { "symbol": "speaker.wave.2.fill", "tooltip": "Sound" } },
             {
-              "constraints": { "size": { "width": 16, "height": 16 }, "position": "centre" },
+              "type": "template",
+              "src": "badge",
+              "id": "pin",
+              "params": {
+                "symbol": "pin.fill",
+                "tooltip": "Pinned"
+              }
+            },
+            {
+              "type": "template",
+              "src": "badge",
+              "id": "sound",
+              "params": {
+                "symbol": "speaker.wave.2.fill",
+                "tooltip": "Sound"
+              }
+            },
+            {
+              "constraints": {
+                "size": {
+                  "width": 16,
+                  "height": 16
+                },
+                "position": "centre"
+              },
               "id": "browsericon",
               "type": "imageview",
               "resize": "fit",
